@@ -12,7 +12,7 @@ Example usage:
 
     # Python
     from outclaw import MailClient, CalendarClient, TasksClient
-    
+
     mail = MailClient()
     messages = mail.list_messages(limit=10)
 """
@@ -21,25 +21,32 @@ __version__ = "1.0.0"
 __author__ = "Daniel Thomas"
 __email__ = "dan@theenquiringmind.com"
 
+
 # Lazy imports to avoid loading everything on import
 def __getattr__(name: str):
     """Lazy import of client classes."""
     if name == "MailClient":
         from outclaw.mail import MailClient
+
         return MailClient
     elif name == "CalendarClient":
         from outclaw.calendar import CalendarClient
+
         return CalendarClient
     elif name == "TasksClient":
         from outclaw.tasks import TasksClient
+
         return TasksClient
     elif name == "TokenManager":
         from outclaw.auth import TokenManager
+
         return TokenManager
     elif name == "GraphClient":
         from outclaw.client import GraphClient
+
         return GraphClient
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "__version__",

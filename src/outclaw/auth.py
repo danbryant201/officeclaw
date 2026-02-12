@@ -7,6 +7,7 @@ Supports secure storage via system keyring with file fallback.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import time
@@ -22,6 +23,7 @@ from outclaw.exceptions import AuthenticationError, ConfigurationError, TokenSto
 # Optional keyring support
 try:
     import keyring
+
     KEYRING_AVAILABLE = True
 except ImportError:
     KEYRING_AVAILABLE = False
@@ -30,13 +32,13 @@ except ImportError:
 class TokenManager:
     """
     Manages OAuth tokens for Microsoft Graph API access.
-    
+
     Features:
         - Secure storage using system keyring (with file fallback)
         - Automatic token refresh when expired
         - In-memory caching for performance
         - Thread-safe token access
-    
+
     Example:
         manager = TokenManager()
         token = manager.get_access_token()
@@ -63,18 +65,17 @@ class TokenManager:
         self.client_secret = os.getenv("OUTCLAW_CLIENT_SECRET")
         self.tenant_id = os.getenv("OUTCLAW_TENANT_ID", "consumers")
         self.redirect_uri = os.getenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
-        
+
         scopes_str = os.getenv("OUTCLAW_SCOPES")
         self.scopes = scopes_str.split() if scopes_str else self.DEFAULT_SCOPES
-        
+
         self.use_keyring = os.getenv("OUTCLAW_USE_KEYRING", "true").lower() == "true"
         self.token_refresh_threshold = int(os.getenv("OUTCLAW_TOKEN_REFRESH_THRESHOLD", "300"))
 
         # Validate required configuration
         if not self.client_id:
             raise ConfigurationError(
-                "OUTCLAW_CLIENT_ID is required. "
-                "Set it in .env or as an environment variable."
+                "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
             )
 
         if not self.client_secret:
@@ -129,7 +130,7 @@ class TokenManager:
                 )
                 self._update_cache(token_data)
                 return
-            except Exception:
+            except Exception:  # noqa: S110
                 pass  # Fall through to file storage
 
         # File fallback
@@ -158,9 +159,8 @@ class TokenManager:
             Token dictionary or None if no tokens found
         """
         # Check in-memory cache (valid for 60 seconds)
-        if self._cached_tokens and self._cache_time:
-            if time.time() - self._cache_time < 60:
-                return self._cached_tokens
+        if self._cached_tokens and self._cache_time and time.time() - self._cache_time < 60:
+            return self._cached_tokens
 
         # Try keyring
         if self.use_keyring and KEYRING_AVAILABLE:
@@ -173,8 +173,8 @@ class TokenManager:
                     tokens = json.loads(token_json)
                     self._update_cache(tokens)
                     return tokens
-            except Exception:
-                pass
+            except Exception:  # noqa: S110
+                pass  # Fall through to file storage
 
         # Try file storage
         if self.token_file.exists():
@@ -202,8 +202,7 @@ class TokenManager:
 
         if not tokens:
             raise AuthenticationError(
-                "No authentication tokens found. "
-                "Run 'outclaw auth login' to authenticate."
+                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
             )
 
         if self._needs_refresh(tokens):
@@ -239,8 +238,7 @@ class TokenManager:
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
             raise AuthenticationError(
-                "No refresh token available. "
-                "Run 'outclaw auth login' to re-authenticate."
+                "No refresh token available. " "Run 'outclaw auth login' to re-authenticate."
             )
 
         try:
@@ -268,17 +266,13 @@ class TokenManager:
         """Clear all stored tokens (logout)."""
         # Clear keyring
         if self.use_keyring and KEYRING_AVAILABLE:
-            try:
+            with contextlib.suppress(Exception):
                 keyring.delete_password(self.KEYRING_SERVICE, self.KEYRING_USERNAME)
-            except Exception:
-                pass
 
         # Clear file
         if self.token_file.exists():
-            try:
+            with contextlib.suppress(Exception):
                 self.token_file.unlink()
-            except Exception:
-                pass
 
         # Clear cache
         self._cached_tokens = None

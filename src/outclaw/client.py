@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 from urllib.parse import urljoin
 
 import requests
@@ -32,7 +33,7 @@ class GraphClient:
         - Error handling and retries
         - Rate limit handling with backoff
         - Pagination support
-    
+
     Example:
         with GraphClient() as client:
             messages = client.get("/me/messages", params={"$top": 10})
@@ -48,19 +49,19 @@ class GraphClient:
         load_dotenv()
 
         self.token_manager = token_manager or TokenManager()
-        self.base_url = os.getenv(
-            "OUTCLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0"
-        )
+        self.base_url = os.getenv("OUTCLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0")
         self.max_retries = int(os.getenv("OUTCLAW_MAX_RETRIES", "3"))
         self.request_timeout = int(os.getenv("OUTCLAW_REQUEST_TIMEOUT", "30"))
         self.rate_limit_wait = int(os.getenv("OUTCLAW_RATE_LIMIT_WAIT", "60"))
 
         # Session for connection pooling
         self._session = requests.Session()
-        self._session.headers.update({
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        })
+        self._session.headers.update(
+            {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+        )
 
     def _get_headers(self, custom_headers: dict[str, str] | None = None) -> dict[str, str]:
         """Get headers with authentication token."""
@@ -140,16 +141,16 @@ class GraphClient:
 
         except RateLimitError as e:
             if retry_count < self.max_retries:
-                wait_time = e.retry_after or (2 ** retry_count * self.rate_limit_wait)
+                wait_time = e.retry_after or (2**retry_count * self.rate_limit_wait)
                 time.sleep(wait_time)
                 return self._make_request(method, endpoint, params, data, headers, retry_count + 1)
             raise
 
         except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
             if retry_count < self.max_retries:
-                time.sleep(2 ** retry_count)
+                time.sleep(2**retry_count)
                 return self._make_request(method, endpoint, params, data, headers, retry_count + 1)
-            raise GraphAPIError("NetworkError", str(e))
+            raise GraphAPIError("NetworkError", str(e)) from e
 
         except AuthenticationError:
             if retry_count == 0:

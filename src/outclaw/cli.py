@@ -57,6 +57,7 @@ def handle_error(e: Exception) -> None:
 # MAIN CLI GROUP
 # ============================================
 
+
 @click.group()
 @click.version_option(version=__version__, prog_name="outclaw")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
@@ -75,6 +76,7 @@ def main(ctx: click.Context, json_output: bool) -> None:
 # AUTH COMMANDS
 # ============================================
 
+
 @main.group()
 def auth() -> None:
     """Authentication commands."""
@@ -87,6 +89,7 @@ def login() -> None:
     try:
         # Import here to avoid circular imports
         from outclaw.auth_flow import run_auth_flow
+
         run_auth_flow()
     except ImportError:
         error_console.print("[yellow]Auth flow not yet implemented.[/yellow]")
@@ -134,7 +137,9 @@ def status(ctx: click.Context) -> None:
         table.add_row("Time Left", f"{info['time_until_expiry_seconds']}s")
         table.add_row("Needs Refresh", "Yes" if info["needs_refresh"] else "No")
         table.add_row("Storage", info["storage_location"])
-        table.add_row("Scopes", ", ".join(info["scopes"][:3]) + ("..." if len(info["scopes"]) > 3 else ""))
+        table.add_row(
+            "Scopes", ", ".join(info["scopes"][:3]) + ("..." if len(info["scopes"]) > 3 else "")
+        )
 
         console.print(table)
 
@@ -145,6 +150,7 @@ def status(ctx: click.Context) -> None:
 # ============================================
 # MAIL COMMANDS
 # ============================================
+
 
 @main.group()
 def mail() -> None:
@@ -215,7 +221,9 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
                 return
 
             console.print(f"[bold]Subject:[/bold] {message.get('subject')}")
-            console.print(f"[bold]From:[/bold] {message.get('from', {}).get('emailAddress', {}).get('address')}")
+            console.print(
+                f"[bold]From:[/bold] {message.get('from', {}).get('emailAddress', {}).get('address')}"
+            )
             console.print(f"[bold]Date:[/bold] {message.get('receivedDateTime')}")
             console.print()
             console.print(message.get("bodyPreview", ""))
@@ -255,6 +263,7 @@ def mail_send(ctx: click.Context, to: str, subject: str, body: str) -> None:
 # ============================================
 # CALENDAR COMMANDS
 # ============================================
+
 
 @main.group()
 def calendar() -> None:
@@ -342,6 +351,7 @@ def calendar_create(ctx: click.Context, subject: str, start: str, end: str, loca
 # TASKS COMMANDS
 # ============================================
 
+
 @main.group()
 def tasks() -> None:
     """Task operations (Microsoft To Do)."""
@@ -413,7 +423,11 @@ def tasks_list(ctx: click.Context, list_id: str, status: str) -> None:
             for task in tasks_list:
                 task_status = "✓" if task.get("status") == "completed" else "○"
                 title = task.get("title", "")[:40]
-                due = task.get("dueDateTime", {}).get("dateTime", "")[:10] if task.get("dueDateTime") else ""
+                due = (
+                    task.get("dueDateTime", {}).get("dateTime", "")[:10]
+                    if task.get("dueDateTime")
+                    else ""
+                )
 
                 table.add_row(task_status, title, due)
 
@@ -458,7 +472,7 @@ def tasks_complete(ctx: click.Context, list_id: str, task_id: str) -> None:
     """Mark a task as completed."""
     try:
         from datetime import datetime, timezone
-        
+
         with GraphClient() as client:
             completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z")
             data = {

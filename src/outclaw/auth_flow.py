@@ -123,19 +123,17 @@ def run_auth_flow() -> dict[str, Any]:
     redirect_uri = os.getenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
     tenant_id = os.getenv("OUTCLAW_TENANT_ID", "consumers")
     scopes_str = os.getenv("OUTCLAW_SCOPES")
-    
+
     scopes = scopes_str.split() if scopes_str else TokenManager.DEFAULT_SCOPES
 
     if not client_id:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_ID is required. "
-            "Set it in .env or as an environment variable."
+            "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
         )
 
     if not client_secret:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_SECRET is required. "
-            "Set it in .env or as an environment variable."
+            "OUTCLAW_CLIENT_SECRET is required. " "Set it in .env or as an environment variable."
         )
 
     # Parse redirect URI to get port
@@ -160,7 +158,7 @@ def run_auth_flow() -> dict[str, Any]:
 
     console.print("\n[bold]Outclaw Authentication[/bold]\n")
     console.print("Opening browser for Microsoft login...")
-    console.print(f"[dim]If browser doesn't open, visit:[/dim]")
+    console.print("[dim]If browser doesn't open, visit:[/dim]")
     console.print(f"[link]{auth_url}[/link]\n")
 
     # Reset handler state
@@ -219,4 +217,4 @@ if __name__ == "__main__":
         run_auth_flow()
     except Exception as e:
         console.print(f"[red]Error:[/red] {e}")
-        raise SystemExit(1)
+        raise SystemExit(1) from e

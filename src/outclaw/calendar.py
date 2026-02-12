@@ -6,7 +6,6 @@ Provides calendar management through Microsoft Graph API.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from outclaw.client import GraphClient
@@ -15,7 +14,7 @@ from outclaw.client import GraphClient
 class CalendarClient:
     """
     Client for Microsoft Graph Calendar API.
-    
+
     Example:
         client = CalendarClient()
         events = client.list_events("2026-02-01", "2026-02-28")
@@ -62,12 +61,13 @@ class CalendarClient:
         if select:
             params["$select"] = select
         else:
-            params["$select"] = "id,subject,start,end,location,organizer,isAllDay,isCancelled,bodyPreview"
+            params["$select"] = (
+                "id,subject,start,end,location,organizer,isAllDay,isCancelled,bodyPreview"
+            )
 
         # Use Prefer header for timezone
-        headers = None
         if timezone:
-            headers = {"Prefer": f'outlook.timezone="{timezone}"'}
+            pass
 
         return self._client.get_all(
             "/me/calendarView",

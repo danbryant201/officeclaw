@@ -15,7 +15,7 @@ from outclaw.client import GraphClient
 class TasksClient:
     """
     Client for Microsoft Graph Tasks (To Do) API.
-    
+
     Example:
         client = TasksClient()
         lists = client.list_task_lists()
@@ -89,7 +89,9 @@ class TasksClient:
         if select:
             params["$select"] = select
         else:
-            params["$select"] = "id,title,status,importance,dueDateTime,completedDateTime,createdDateTime"
+            params["$select"] = (
+                "id,title,status,importance,dueDateTime,completedDateTime,createdDateTime"
+            )
 
         if status:
             if status == "completed":
@@ -236,9 +238,7 @@ class TasksClient:
             Updated task object
         """
         if completed_at is None:
-            completed_at = datetime.now(timezone.utc).strftime(
-                "%Y-%m-%dT%H:%M:%S.0000000Z"
-            )
+            completed_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.0000000Z")
 
         data = {
             "status": "completed",

@@ -59,27 +59,27 @@ class TestTokenManager:
         """Test saving tokens to file when keyring unavailable."""
         from outclaw.auth import TokenManager
 
-        with patch.object(TokenManager, "token_dir", tmp_path):
-            manager = TokenManager()
-            manager.token_file = tmp_path / "tokens.json"
+        manager = TokenManager()
+        manager.token_dir = tmp_path
+        manager.token_file = tmp_path / "tokens.json"
 
-            tokens = {
-                "access_token": "test-access-token",
-                "refresh_token": "test-refresh-token",
-                "expires_in": 3600,
-            }
+        tokens = {
+            "access_token": "test-access-token",
+            "refresh_token": "test-refresh-token",
+            "expires_in": 3600,
+        }
 
-            manager.save_tokens(tokens)
+        manager.save_tokens(tokens)
 
-            # Verify file was created
-            assert manager.token_file.exists()
+        # Verify file was created
+        assert manager.token_file.exists()
 
-            # Verify content
-            with open(manager.token_file) as f:
-                saved = json.load(f)
+        # Verify content
+        with open(manager.token_file) as f:
+            saved = json.load(f)
 
-            assert saved["access_token"] == "test-access-token"
-            assert "saved_at" in saved
+        assert saved["access_token"] == "test-access-token"
+        assert "saved_at" in saved
 
     @patch.dict("os.environ", {
         "OUTCLAW_CLIENT_ID": "test-id",
@@ -102,13 +102,13 @@ class TestTokenManager:
         with open(token_file, "w") as f:
             json.dump(tokens, f)
 
-        with patch.object(TokenManager, "token_dir", tmp_path):
-            manager = TokenManager()
-            manager.token_file = token_file
+        manager = TokenManager()
+        manager.token_file = token_file
+        manager._cached_tokens = None  # Clear cache to force file read
 
-            result = manager.get_tokens()
+        result = manager.get_tokens()
 
-            assert result["access_token"] == "test-token"
+        assert result["access_token"] == "test-token"
 
     @patch.dict("os.environ", {
         "OUTCLAW_CLIENT_ID": "test-id",
@@ -197,15 +197,15 @@ class TestTokenManager:
         token_file = tmp_path / "tokens.json"
         token_file.write_text('{"access_token": "test"}')
 
-        with patch.object(TokenManager, "token_dir", tmp_path):
-            manager = TokenManager()
-            manager.token_file = token_file
-            manager._cached_tokens = {"test": "data"}
+        manager = TokenManager()
+        manager.token_dir = tmp_path
+        manager.token_file = token_file
+        manager._cached_tokens = {"test": "data"}
 
-            manager.clear_tokens()
+        manager.clear_tokens()
 
-            assert not token_file.exists()
-            assert manager._cached_tokens is None
+        assert not token_file.exists()
+        assert manager._cached_tokens is None
 
     @patch.dict("os.environ", {
         "OUTCLAW_CLIENT_ID": "test-id",

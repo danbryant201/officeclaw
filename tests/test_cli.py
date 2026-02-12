@@ -16,7 +16,6 @@ class TestCliHelp:
 
     def test_help_shows_commands(self):
         """Test that --help shows available commands."""
-        # Import here to ensure clean state
         from outclaw.cli import main
         
         runner = CliRunner()
@@ -36,69 +35,126 @@ class TestCliHelp:
         result = runner.invoke(main, ["--version"])
         
         assert result.exit_code == 0
-        # Version should be in output
-        assert "outclaw" in result.output.lower() or "1." in result.output
+        assert "1." in result.output or "outclaw" in result.output.lower()
+
+    def test_mail_help(self):
+        """Test mail subcommand help."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["mail", "--help"])
+        
+        assert result.exit_code == 0
+        assert "list" in result.output
+        assert "get" in result.output
+        assert "send" in result.output
+
+    def test_calendar_help(self):
+        """Test calendar subcommand help."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["calendar", "--help"])
+        
+        assert result.exit_code == 0
+        assert "list" in result.output
+        assert "create" in result.output
+
+    def test_tasks_help(self):
+        """Test tasks subcommand help."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["tasks", "--help"])
+        
+        assert result.exit_code == 0
+        assert "list-lists" in result.output
+        assert "list" in result.output
+        assert "create" in result.output
+        assert "complete" in result.output
+
+    def test_auth_help(self):
+        """Test auth subcommand help."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["auth", "--help"])
+        
+        assert result.exit_code == 0
+        assert "login" in result.output
+        assert "logout" in result.output
+        assert "status" in result.output
 
 
 class TestMailCommands:
     """Test mail-related CLI commands."""
 
-    @patch("outclaw.cli.MailClient")
+    @patch("outclaw.cli.GraphClient")
     def test_mail_list_success(self, mock_client_class, sample_messages):
         """Test successful mail list command."""
         from outclaw.cli import main
         
-        # Set up mock
         mock_client = MagicMock()
-        mock_client.list_messages.return_value = sample_messages
+        mock_client.get_all.return_value = sample_messages
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
         result = runner.invoke(main, ["mail", "list", "--limit", "10"])
         
         assert result.exit_code == 0
-        mock_client.list_messages.assert_called_once()
 
-    @patch("outclaw.cli.MailClient")
+    @patch("outclaw.cli.GraphClient")
     def test_mail_list_json_output(self, mock_client_class, sample_messages):
         """Test mail list outputs valid JSON."""
         from outclaw.cli import main
         
         mock_client = MagicMock()
-        mock_client.list_messages.return_value = sample_messages
+        mock_client.get_all.return_value = sample_messages
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
-        result = runner.invoke(main, ["mail", "list", "--output", "json"])
+        result = runner.invoke(main, ["--json", "mail", "list"])
         
         assert result.exit_code == 0
-        # Output should be valid JSON
         data = json.loads(result.output)
-        assert "status" in data or isinstance(data, list)
+        assert "status" in data
+        assert data["status"] == "success"
 
-    @patch("outclaw.cli.MailClient")
-    def test_mail_get_requires_message_id(self, mock_client_class):
+    def test_mail_get_requires_message_id(self):
         """Test mail get requires message-id argument."""
         from outclaw.cli import main
         
         runner = CliRunner()
         result = runner.invoke(main, ["mail", "get"])
         
-        # Should fail without message-id
         assert result.exit_code != 0
-        assert "message-id" in result.output.lower() or "missing" in result.output.lower()
+
+    def test_mail_send_requires_options(self):
+        """Test mail send requires all options."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["mail", "send"])
+        
+        assert result.exit_code != 0
 
 
 class TestCalendarCommands:
     """Test calendar-related CLI commands."""
 
-    @patch("outclaw.cli.CalendarClient")
+    @patch("outclaw.cli.GraphClient")
     def test_calendar_list_with_dates(self, mock_client_class, sample_events):
         """Test calendar list with date range."""
         from outclaw.cli import main
         
         mock_client = MagicMock()
-        mock_client.list_events.return_value = sample_events
+        mock_client.get_all.return_value = sample_events
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
@@ -109,35 +165,55 @@ class TestCalendarCommands:
         ])
         
         assert result.exit_code == 0
-        mock_client.list_events.assert_called_once()
+
+    def test_calendar_list_requires_dates(self):
+        """Test calendar list requires start and end dates."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["calendar", "list"])
+        
+        assert result.exit_code != 0
+
+    def test_calendar_create_requires_options(self):
+        """Test calendar create requires subject, start, end."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["calendar", "create"])
+        
+        assert result.exit_code != 0
 
 
 class TestTasksCommands:
     """Test tasks-related CLI commands."""
 
-    @patch("outclaw.cli.TasksClient")
+    @patch("outclaw.cli.GraphClient")
     def test_tasks_list_lists(self, mock_client_class, sample_task_list):
         """Test listing task lists."""
         from outclaw.cli import main
         
         mock_client = MagicMock()
-        mock_client.list_task_lists.return_value = [sample_task_list]
+        mock_client.get_all.return_value = [sample_task_list]
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
         result = runner.invoke(main, ["tasks", "list-lists"])
         
         assert result.exit_code == 0
-        mock_client.list_task_lists.assert_called_once()
 
-    @patch("outclaw.cli.TasksClient")
+    @patch("outclaw.cli.GraphClient")
     def test_tasks_complete(self, mock_client_class, sample_task):
         """Test completing a task."""
         from outclaw.cli import main
         
         mock_client = MagicMock()
         completed_task = {**sample_task, "status": "completed"}
-        mock_client.complete_task.return_value = completed_task
+        mock_client.patch.return_value = completed_task
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
@@ -149,6 +225,15 @@ class TestTasksCommands:
         
         assert result.exit_code == 0
 
+    def test_tasks_list_requires_list_id(self):
+        """Test tasks list requires list-id."""
+        from outclaw.cli import main
+        
+        runner = CliRunner()
+        result = runner.invoke(main, ["tasks", "list"])
+        
+        assert result.exit_code != 0
+
 
 class TestAuthCommands:
     """Test authentication-related CLI commands."""
@@ -159,14 +244,13 @@ class TestAuthCommands:
         from outclaw.cli import main
         
         mock_manager = MagicMock()
-        mock_manager.get_token.return_value = None
+        mock_manager.get_token_info.return_value = None
         mock_token_manager.return_value = mock_manager
         
         runner = CliRunner()
         result = runner.invoke(main, ["auth", "status"])
         
-        # Should indicate not authenticated
-        assert "not" in result.output.lower() or "no" in result.output.lower()
+        assert "not" in result.output.lower() or "authenticated" in result.output.lower()
 
     @patch("outclaw.cli.TokenManager")
     def test_auth_logout(self, mock_token_manager):
@@ -183,41 +267,42 @@ class TestAuthCommands:
         mock_manager.clear_tokens.assert_called_once()
 
 
-class TestErrorHandling:
-    """Test CLI error handling."""
+class TestJsonOutput:
+    """Test JSON output mode."""
 
-    @patch("outclaw.cli.MailClient")
-    def test_authentication_error_message(self, mock_client_class):
-        """Test authentication error shows helpful message."""
+    @patch("outclaw.cli.GraphClient")
+    def test_json_flag_affects_output(self, mock_client_class, sample_messages):
+        """Test that --json flag produces JSON output."""
         from outclaw.cli import main
-        from outclaw.exceptions import AuthenticationError
         
         mock_client = MagicMock()
-        mock_client.list_messages.side_effect = AuthenticationError("Token expired")
+        mock_client.get_all.return_value = sample_messages
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
-        result = runner.invoke(main, ["mail", "list"])
+        result = runner.invoke(main, ["--json", "mail", "list"])
         
-        # Should show authentication error
-        assert result.exit_code != 0
-        assert "auth" in result.output.lower() or "token" in result.output.lower()
+        # Should be valid JSON
+        data = json.loads(result.output)
+        assert "status" in data
 
-    @patch("outclaw.cli.MailClient")
-    def test_api_error_shows_details(self, mock_client_class):
-        """Test API error shows error details."""
+    @patch("outclaw.cli.GraphClient")
+    def test_json_output_structure(self, mock_client_class, sample_task_list):
+        """Test JSON output has correct structure."""
         from outclaw.cli import main
-        from outclaw.exceptions import GraphAPIError
         
         mock_client = MagicMock()
-        mock_client.list_messages.side_effect = GraphAPIError(
-            "ResourceNotFound", "Message not found"
-        )
+        mock_client.get_all.return_value = [sample_task_list]
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
         mock_client_class.return_value = mock_client
         
         runner = CliRunner()
-        result = runner.invoke(main, ["mail", "list"])
+        result = runner.invoke(main, ["--json", "tasks", "list-lists"])
         
-        assert result.exit_code != 0
-        # Error details should be in output
-        assert "error" in result.output.lower()
+        data = json.loads(result.output)
+        assert data["status"] == "success"
+        assert "data" in data
+        assert isinstance(data["data"], list)

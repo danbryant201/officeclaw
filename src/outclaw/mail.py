@@ -14,7 +14,7 @@ from outclaw.client import GraphClient
 class MailClient:
     """
     Client for Microsoft Graph Mail API.
-    
+
     Example:
         client = MailClient()
         messages = client.list_messages(limit=10)
@@ -57,7 +57,9 @@ class MailClient:
         if select:
             params["$select"] = select
         else:
-            params["$select"] = "id,subject,from,toRecipients,receivedDateTime,isRead,importance,hasAttachments,bodyPreview"
+            params["$select"] = (
+                "id,subject,from,toRecipients,receivedDateTime,isRead,importance,hasAttachments,bodyPreview"
+            )
 
         if filter_query:
             params["$filter"] = filter_query
@@ -114,9 +116,7 @@ class MailClient:
                     "contentType": content_type,
                     "content": body,
                 },
-                "toRecipients": [
-                    {"emailAddress": {"address": addr}} for addr in to_list
-                ],
+                "toRecipients": [{"emailAddress": {"address": addr}} for addr in to_list],
             },
             "saveToSentItems": save_to_sent,
         }
@@ -167,9 +167,7 @@ class MailClient:
         to_list = [to] if isinstance(to, str) else to
         data = {
             "comment": comment,
-            "toRecipients": [
-                {"emailAddress": {"address": addr}} for addr in to_list
-            ],
+            "toRecipients": [{"emailAddress": {"address": addr}} for addr in to_list],
         }
         self._client.post(f"/me/messages/{message_id}/forward", data)
 
