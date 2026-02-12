@@ -36,6 +36,9 @@ def __getattr__(name: str):
     elif name == "TokenManager":
         from outclaw.auth import TokenManager
         return TokenManager
+    elif name == "GraphClient":
+        from outclaw.client import GraphClient
+        return GraphClient
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [
@@ -43,5 +46,7 @@ __all__ = [
     "MailClient",
     "CalendarClient",
     "TasksClient",
+    "TasksClient",
     "TokenManager",
+    "GraphClient",
 ]
