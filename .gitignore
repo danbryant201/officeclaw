@@ -1,0 +1,292 @@
+# ============================================
+# OUTCLAW .GITIGNORE
+# Security-first: Credentials and tokens MUST be blocked
+# ============================================
+
+# ============================================
+# 🔐 CREDENTIALS & SECRETS (CRITICAL)
+# ============================================
+
+# Environment files (may contain CLIENT_SECRET)
+.env
+.env.*
+!.env.template
+!.env.example
+
+# Azure/Microsoft credentials
+client_secret*.json
+credentials.json
+azure.json
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Token storage
+token_cache.json
+*.token
+*.tokens
+.msal_token_cache*
+msal_token_cache.json
+
+# Outclaw data directory
+.outclaw/
+
+# Generic secrets
+secrets.json
+secrets.yaml
+secrets.yml
+*.secret
+*.secrets
+
+# ============================================
+# 🐍 PYTHON
+# ============================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.venv
+venv/
+ENV/
+env/
+.env.local
+.python-version
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ============================================
+# 📦 DEPENDENCY MANAGEMENT
+# ============================================
+
+# pip
+pip-wheel-metadata/
+
+# Poetry
+poetry.lock
+
+# PDM
+.pdm.toml
+__pypackages__/
+
+# ============================================
+# 🛠️ IDES & EDITORS
+# ============================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================
+# 🖥️ OPERATING SYSTEMS
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+
+# ============================================
+# 📝 LOGS & TEMPORARY FILES
+# ============================================
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ============================================
+# 🧪 TESTING
+# ============================================
+
+# pytest
+.pytest_cache/
+pytestdebug.log
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# ============================================
+# 🔧 BUILD & CI
+# ============================================
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# CI artifacts
+.github/workflows/*.local.yml
+
+# ============================================
+# 📚 DOCUMENTATION
+# ============================================
+
+# Sphinx
+docs/_build/
+
+# MkDocs
+site/
+
+# ============================================
+# 🎯 PROJECT SPECIFIC
+# ============================================
+
+# Development notes (may contain sensitive info)
+TODO.md
+NOTES.md
+scratch/
+sandbox/
+
+# Local configuration overrides
+*.local.yaml
+*.local.json
+*.local.toml
+config.local.*
+
+# Test fixtures with real data
+tests/fixtures/real/
+tests/data/real/
+
+# ============================================
+# ⚠️ SAFETY NET
+# ============================================
+
+# Catch common credential file patterns
+*_credentials*
+*_secrets*
+*_token*
+*password*
+*apikey*
+*api_key*
+*auth.json
+*auth.yaml

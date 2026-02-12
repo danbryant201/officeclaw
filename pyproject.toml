@@ -1,0 +1,229 @@
+# ============================================
+# OUTCLAW - Python Package Configuration
+# ============================================
+# Modern Python packaging with pyproject.toml (PEP 621)
+# Build: `python -m build`
+# Install: `pip install .` or `pip install -e .[dev]`
+# ============================================
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# ============================================
+# PROJECT METADATA
+# ============================================
+
+[project]
+name = "outclaw"
+version = "1.0.0"
+description = "Microsoft Graph API integration for OpenClaw agents - manage email, calendar, and tasks"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.9"
+authors = [
+    { name = "Daniel Thomas", email = "dan@theenquiringmind.com" }
+]
+maintainers = [
+    { name = "Daniel Thomas", email = "dan@theenquiringmind.com" }
+]
+keywords = [
+    "openclaw",
+    "microsoft-graph",
+    "outlook",
+    "calendar",
+    "tasks",
+    "email",
+    "ai-agent",
+    "automation"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+    "Topic :: Office/Business :: Scheduling",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# ============================================
+# DEPENDENCIES
+# ============================================
+
+dependencies = [
+    "msal>=1.28.0",              # Microsoft Authentication Library
+    "requests>=2.31.0",          # HTTP client
+    "python-dotenv>=1.0.0",      # Environment file loading
+    "keyring>=25.0.0",           # Secure credential storage
+    "python-dateutil>=2.8.2",    # Date/time utilities
+    "click>=8.1.0",              # CLI framework
+    "rich>=13.0.0",              # Rich terminal output
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.0",
+    "responses>=0.25.0",         # Mock HTTP responses
+    "freezegun>=1.2.0",          # Mock datetime
+    
+    # Linting & Formatting
+    "ruff>=0.2.0",
+    "black>=24.0.0",
+    "mypy>=1.8.0",
+    
+    # Security
+    "pip-audit>=2.7.0",
+    "bandit>=1.7.0",
+    
+    # Build
+    "build>=1.0.0",
+    "twine>=5.0.0",
+]
+
+# ============================================
+# CLI ENTRY POINT
+# ============================================
+
+[project.scripts]
+outclaw = "outclaw.cli:main"
+
+# ============================================
+# PROJECT URLS
+# ============================================
+
+[project.urls]
+Homepage = "https://github.com/danielithomas/outclaw"
+Documentation = "https://github.com/danielithomas/outclaw#readme"
+Repository = "https://github.com/danielithomas/outclaw.git"
+Issues = "https://github.com/danielithomas/outclaw/issues"
+Changelog = "https://github.com/danielithomas/outclaw/blob/main/CHANGELOG.md"
+
+# ============================================
+# BUILD CONFIGURATION
+# ============================================
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/outclaw"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/skill",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+]
+
+# ============================================
+# TOOL CONFIGURATIONS
+# ============================================
+
+# --- PYTEST ---
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "-ra",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests requiring real API access",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+# --- COVERAGE ---
+[tool.coverage.run]
+source = ["src/outclaw"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]
+show_missing = true
+fail_under = 80
+
+# --- RUFF (Linting) ---
+[tool.ruff]
+target-version = "py39"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+    "S",      # flake8-bandit (security)
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "S101",   # assert used (OK in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "ARG"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["outclaw"]
+
+# --- BLACK (Formatting) ---
+[tool.black]
+target-version = ["py39", "py310", "py311", "py312"]
+line-length = 100
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+    | \.venv
+    | build
+    | dist
+)/
+'''
+
+# --- MYPY (Type Checking) ---
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
