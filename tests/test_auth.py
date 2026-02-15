@@ -82,7 +82,7 @@ class TestTokenManagerPublicClient:
         manager = TokenManager()
         token = manager.get_access_token()
 
-        assert token == "test-access-token"
+        assert token == "test-access-token"  # noqa: S105
         mock_app.acquire_token_silent.assert_called_once()
 
     @patch("outclaw.auth.load_dotenv")
@@ -160,10 +160,13 @@ class TestTokenManagerPublicClient:
 class TestTokenManagerConfidentialClient:
     """Test TokenManager in confidential client (legacy) mode."""
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-client-id",
-        "OUTCLAW_CLIENT_SECRET": "test-client-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-client-id",
+            "OUTCLAW_CLIENT_SECRET": "test-client-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_init_confidential_client(self, mock_app):
         """Test initialization in confidential client mode."""
@@ -172,13 +175,16 @@ class TestTokenManagerConfidentialClient:
         manager = TokenManager()
 
         assert manager.client_id == "test-client-id"
-        assert manager.client_secret == "test-client-secret"
+        assert manager.client_secret == "test-client-secret"  # noqa: S105
         assert manager.public_client_mode is False
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     @patch("outclaw.auth.KEYRING_AVAILABLE", False)
     def test_save_tokens_to_file(self, mock_app, tmp_path):
@@ -202,13 +208,16 @@ class TestTokenManagerConfidentialClient:
         with open(manager.token_file) as f:
             saved = json.load(f)
 
-        assert saved["access_token"] == "test-access-token"
+        assert saved["access_token"] == "test-access-token"  # noqa: S105
         assert "saved_at" in saved
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     @patch("outclaw.auth.KEYRING_AVAILABLE", False)
     def test_get_tokens_from_file(self, mock_app, tmp_path):
@@ -231,12 +240,15 @@ class TestTokenManagerConfidentialClient:
 
         result = manager.get_tokens()
 
-        assert result["access_token"] == "test-token"
+        assert result["access_token"] == "test-token"  # noqa: S105
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_get_access_token_no_tokens(self, mock_app):
         """Test getting access token when not authenticated."""
@@ -251,10 +263,13 @@ class TestTokenManagerConfidentialClient:
 
             assert "No authentication tokens" in str(exc_info.value)
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_no_expiry_info(self, mock_app):
         """Test needs_refresh returns True when no expiry info."""
@@ -265,10 +280,13 @@ class TestTokenManagerConfidentialClient:
         tokens = {"access_token": "token"}
         assert manager._needs_refresh(tokens) is True
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_expired(self, mock_app):
         """Test needs_refresh returns True for expired tokens."""
@@ -285,10 +303,13 @@ class TestTokenManagerConfidentialClient:
 
         assert manager._needs_refresh(tokens) is True
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_valid(self, mock_app):
         """Test needs_refresh returns False for valid tokens."""
@@ -305,10 +326,13 @@ class TestTokenManagerConfidentialClient:
 
         assert manager._needs_refresh(tokens) is False
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_clear_tokens(self, mock_app, tmp_path):
         """Test clearing tokens."""
@@ -327,10 +351,13 @@ class TestTokenManagerConfidentialClient:
         assert not token_file.exists()
         assert manager._cached_tokens is None
 
-    @patch.dict("os.environ", {
-        "OUTCLAW_CLIENT_ID": "test-id",
-        "OUTCLAW_CLIENT_SECRET": "test-secret",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "OUTCLAW_CLIENT_ID": "test-id",
+            "OUTCLAW_CLIENT_SECRET": "test-secret",
+        },
+    )
     @patch("outclaw.auth.ConfidentialClientApplication")
     def test_get_token_info(self, mock_app):
         """Test getting token info for status display."""

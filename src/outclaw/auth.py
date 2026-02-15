@@ -120,8 +120,7 @@ class TokenManager:
         # Validate required configuration
         if not self.client_id:
             raise ConfigurationError(
-                "OUTCLAW_CLIENT_ID is required. "
-                "Set it in .env or as an environment variable."
+                "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
             )
 
         # Determine mode
@@ -188,8 +187,7 @@ class TokenManager:
         accounts = self._app.get_accounts()
         if not accounts:
             raise AuthenticationError(
-                "No authentication tokens found. "
-                "Run 'outclaw auth login' to authenticate."
+                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
             )
 
         result = self._app.acquire_token_silent(
@@ -199,8 +197,7 @@ class TokenManager:
 
         if not result:
             raise AuthenticationError(
-                "Token refresh failed. "
-                "Run 'outclaw auth login' to re-authenticate."
+                "Token refresh failed. " "Run 'outclaw auth login' to re-authenticate."
             )
 
         if "error" in result:
@@ -212,8 +209,7 @@ class TokenManager:
 
         if "access_token" not in result:
             raise AuthenticationError(
-                "No access token in response. "
-                "Run 'outclaw auth login' to re-authenticate."
+                "No access token in response. " "Run 'outclaw auth login' to re-authenticate."
             )
 
         # Persist cache if tokens were refreshed
@@ -227,8 +223,7 @@ class TokenManager:
 
         if not tokens:
             raise AuthenticationError(
-                "No authentication tokens found. "
-                "Run 'outclaw auth login' to authenticate."
+                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
             )
 
         if self._needs_refresh(tokens):
@@ -387,8 +382,7 @@ class TokenManager:
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
             raise AuthenticationError(
-                "No refresh token available. "
-                "Run 'outclaw auth login' to re-authenticate."
+                "No refresh token available. " "Run 'outclaw auth login' to re-authenticate."
             )
 
         try:

@@ -143,9 +143,7 @@ def status(ctx: click.Context) -> None:
         table.add_row("Needs Refresh", "Yes" if info["needs_refresh"] else "No")
         table.add_row("Storage", info["storage_location"])
         scopes = info.get("scopes", [])
-        table.add_row(
-            "Scopes", ", ".join(scopes[:3]) + ("..." if len(scopes) > 3 else "")
-        )
+        table.add_row("Scopes", ", ".join(scopes[:3]) + ("..." if len(scopes) > 3 else ""))
 
         console.print(table)
 
@@ -244,7 +242,9 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
 @click.option("--body", required=True, help="Email body")
 @click.option("--attachment", multiple=True, help="File path to attach (repeatable)")
 @click.pass_context
-def mail_send(ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]) -> None:
+def mail_send(
+    ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]
+) -> None:
     """Send an email message."""
     import base64
     import mimetypes
@@ -259,12 +259,14 @@ def mail_send(ctx: click.Context, to: str, subject: str, body: str, attachment: 
                 sys.exit(1)
             content_type = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
             content_bytes = base64.b64encode(p.read_bytes()).decode("utf-8")
-            attachments.append({
-                "@odata.type": "#microsoft.graph.fileAttachment",
-                "name": p.name,
-                "contentType": content_type,
-                "contentBytes": content_bytes,
-            })
+            attachments.append(
+                {
+                    "@odata.type": "#microsoft.graph.fileAttachment",
+                    "name": p.name,
+                    "contentType": content_type,
+                    "contentBytes": content_bytes,
+                }
+            )
 
         with GraphClient() as client:
             message: dict[str, Any] = {
@@ -575,8 +577,13 @@ def calendar_create(ctx: click.Context, subject: str, start: str, end: str, loca
 @click.option("--body", default=None, help="New description")
 @click.pass_context
 def calendar_update(
-    ctx: click.Context, event_id: str, subject: str | None,
-    start: str | None, end: str | None, location: str | None, body: str | None,
+    ctx: click.Context,
+    event_id: str,
+    subject: str | None,
+    start: str | None,
+    end: str | None,
+    location: str | None,
+    body: str | None,
 ) -> None:
     """Update a calendar event."""
     try:
@@ -584,8 +591,12 @@ def calendar_update(
 
         with CalendarClient() as cc:
             result = cc.update_event(
-                event_id, subject=subject, start=start, end=end,
-                location=location, body=body,
+                event_id,
+                subject=subject,
+                start=start,
+                end=end,
+                location=location,
+                body=body,
             )
 
         if ctx.obj.get("json"):
@@ -890,11 +901,18 @@ def tasks_get(ctx: click.Context, list_id: str, task_id: str) -> None:
 @click.option("--title", default=None, help="New title")
 @click.option("--body", default=None, help="New description")
 @click.option("--due-date", default=None, help="New due date (YYYY-MM-DD)")
-@click.option("--importance", type=click.Choice(["low", "normal", "high"]), default=None, help="Importance")
+@click.option(
+    "--importance", type=click.Choice(["low", "normal", "high"]), default=None, help="Importance"
+)
 @click.pass_context
 def tasks_update(
-    ctx: click.Context, list_id: str, task_id: str,
-    title: str | None, body: str | None, due_date: str | None, importance: str | None,
+    ctx: click.Context,
+    list_id: str,
+    task_id: str,
+    title: str | None,
+    body: str | None,
+    due_date: str | None,
+    importance: str | None,
 ) -> None:
     """Update a task."""
     try:
@@ -902,8 +920,12 @@ def tasks_update(
 
         with TasksClient() as tc:
             result = tc.update_task(
-                list_id, task_id, title=title, body=body,
-                due_date=due_date, importance=importance,
+                list_id,
+                task_id,
+                title=title,
+                body=body,
+                due_date=due_date,
+                importance=importance,
             )
 
         if ctx.obj.get("json"):

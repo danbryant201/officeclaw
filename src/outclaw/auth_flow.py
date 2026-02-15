@@ -223,8 +223,7 @@ def run_authorization_code_flow() -> dict[str, Any]:
 
     if not client_id:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_ID is required. "
-            "Set it in .env or as an environment variable."
+            "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
         )
 
     if not client_secret:
