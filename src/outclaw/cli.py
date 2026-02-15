@@ -133,12 +133,18 @@ def status(ctx: click.Context) -> None:
 
         status_emoji = "🔴" if info["is_expired"] else "🟢"
         table.add_row("Status", f"{status_emoji} {'Expired' if info['is_expired'] else 'Valid'}")
-        table.add_row("Expires", info["expires_at"])
+        if "account" in info:
+            table.add_row("Account", info["account"])
+        if "mode" in info:
+            table.add_row("Mode", info["mode"])
+        if "expires_at" in info:
+            table.add_row("Expires", info["expires_at"])
         table.add_row("Time Left", f"{info['time_until_expiry_seconds']}s")
         table.add_row("Needs Refresh", "Yes" if info["needs_refresh"] else "No")
         table.add_row("Storage", info["storage_location"])
+        scopes = info.get("scopes", [])
         table.add_row(
-            "Scopes", ", ".join(info["scopes"][:3]) + ("..." if len(info["scopes"]) > 3 else "")
+            "Scopes", ", ".join(scopes[:3]) + ("..." if len(scopes) > 3 else "")
         )
 
         console.print(table)

@@ -134,10 +134,18 @@ def mock_keyring() -> Generator[MagicMock, None, None]:
 
 @pytest.fixture
 def mock_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Set up mock environment variables."""
+    """Set up mock environment variables (confidential client mode)."""
     monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("OUTCLAW_CLIENT_SECRET", "test-client-secret")
     monkeypatch.setenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
+    monkeypatch.setenv("OUTCLAW_TENANT_ID", "consumers")
+
+
+@pytest.fixture
+def mock_env_public(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set up mock environment variables (public client / device code mode)."""
+    monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
+    monkeypatch.delenv("OUTCLAW_CLIENT_SECRET", raising=False)
     monkeypatch.setenv("OUTCLAW_TENANT_ID", "consumers")
 
 

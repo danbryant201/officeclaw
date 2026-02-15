@@ -2,7 +2,13 @@
 Authentication and token management for Outclaw.
 
 Handles OAuth 2.0 token storage, retrieval, and refresh using MSAL.
-Supports secure storage via system keyring with file fallback.
+Supports both public client (device code flow) and confidential client modes.
+
+Public client (default): No client secret needed. Uses device code flow for login
+and MSAL's built-in token cache with automatic refresh.
+
+Confidential client (legacy): Requires OUTCLAW_CLIENT_SECRET. Uses authorization
+code flow with manual token refresh.
 """
 
 from __future__ import annotations
@@ -16,11 +22,11 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from msal import ConfidentialClientApplication
+from msal import ConfidentialClientApplication, PublicClientApplication, SerializableTokenCache
 
 from outclaw.exceptions import AuthenticationError, ConfigurationError, TokenStorageError
 
-# Optional keyring support
+# Optional keyring support (legacy mode only)
 try:
     import keyring
 
@@ -29,15 +35,53 @@ except ImportError:
     KEYRING_AVAILABLE = False
 
 
+# Cache file location
+CACHE_DIR = Path.home() / ".outclaw"
+CACHE_FILE = CACHE_DIR / "token_cache.json"
+
+
+def _load_msal_cache() -> SerializableTokenCache:
+    """Load the MSAL serializable token cache from disk."""
+    cache = SerializableTokenCache()
+    if CACHE_FILE.exists():
+        with contextlib.suppress(Exception):
+            cache.deserialize(CACHE_FILE.read_text())
+    return cache
+
+
+def _save_msal_cache(cache: SerializableTokenCache) -> None:
+    """Save the MSAL token cache to disk with secure permissions."""
+    if cache.has_state_changed:
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            CACHE_FILE.write_text(cache.serialize())
+            os.chmod(CACHE_FILE, 0o600)
+        except OSError as e:
+            raise TokenStorageError(f"Failed to save token cache: {e}") from e
+
+
+def _is_public_client_mode() -> bool:
+    """Check whether to use public client (no secret) or confidential client."""
+    return not os.getenv("OUTCLAW_CLIENT_SECRET")
+
+
 class TokenManager:
     """
     Manages OAuth tokens for Microsoft Graph API access.
 
-    Features:
-        - Secure storage using system keyring (with file fallback)
-        - Automatic token refresh when expired
-        - In-memory caching for performance
-        - Thread-safe token access
+    Automatically selects between public client (device code flow) and
+    confidential client (authorization code flow) based on whether
+    OUTCLAW_CLIENT_SECRET is set.
+
+    Public client mode (default):
+        - Uses MSAL's SerializableTokenCache for persistence
+        - Token refresh is handled automatically by acquire_token_silent()
+        - Login via device code flow: ``outclaw auth login``
+
+    Confidential client mode (legacy):
+        - Requires OUTCLAW_CLIENT_SECRET
+        - Uses keyring or file-based token storage
+        - Manual token refresh via refresh_token
 
     Example:
         manager = TokenManager()
@@ -76,15 +120,32 @@ class TokenManager:
         # Validate required configuration
         if not self.client_id:
             raise ConfigurationError(
-                "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
-            )
-
-        if not self.client_secret:
-            raise ConfigurationError(
-                "OUTCLAW_CLIENT_SECRET is required. "
+                "OUTCLAW_CLIENT_ID is required. "
                 "Set it in .env or as an environment variable."
             )
 
+        # Determine mode
+        self.public_client_mode = _is_public_client_mode()
+
+        if self.public_client_mode:
+            self._init_public_client()
+        else:
+            self._init_confidential_client()
+
+    def _init_public_client(self) -> None:
+        """Initialize for public client (device code) mode."""
+        authority_base = os.getenv("OUTCLAW_AUTHORITY", "https://login.microsoftonline.com")
+        self.authority = f"{authority_base}/{self.tenant_id}"
+
+        self._cache = _load_msal_cache()
+        self._app = PublicClientApplication(
+            client_id=self.client_id,
+            authority=self.authority,
+            token_cache=self._cache,
+        )
+
+    def _init_confidential_client(self) -> None:
+        """Initialize for confidential client (legacy) mode."""
         # Token storage directory
         cache_dir = os.getenv("OUTCLAW_TOKEN_CACHE_DIR", ".outclaw")
         self.token_dir = Path.home() / cache_dir
@@ -108,9 +169,113 @@ class TokenManager:
         self._cached_tokens: dict[str, Any] | None = None
         self._cache_time: float | None = None
 
+    def get_access_token(self) -> str:
+        """
+        Get a valid access token, refreshing if necessary.
+
+        Returns:
+            Valid access token string
+
+        Raises:
+            AuthenticationError: If no tokens found or refresh fails
+        """
+        if self.public_client_mode:
+            return self._get_access_token_public()
+        return self._get_access_token_confidential()
+
+    def _get_access_token_public(self) -> str:
+        """Get access token using public client with MSAL cache."""
+        accounts = self._app.get_accounts()
+        if not accounts:
+            raise AuthenticationError(
+                "No authentication tokens found. "
+                "Run 'outclaw auth login' to authenticate."
+            )
+
+        result = self._app.acquire_token_silent(
+            scopes=self.scopes,
+            account=accounts[0],
+        )
+
+        if not result:
+            raise AuthenticationError(
+                "Token refresh failed. "
+                "Run 'outclaw auth login' to re-authenticate."
+            )
+
+        if "error" in result:
+            error_desc = result.get("error_description", result["error"])
+            raise AuthenticationError(
+                f"Token refresh failed: {error_desc}. "
+                "Run 'outclaw auth login' to re-authenticate."
+            )
+
+        if "access_token" not in result:
+            raise AuthenticationError(
+                "No access token in response. "
+                "Run 'outclaw auth login' to re-authenticate."
+            )
+
+        # Persist cache if tokens were refreshed
+        _save_msal_cache(self._cache)
+
+        return result["access_token"]
+
+    def _get_access_token_confidential(self) -> str:
+        """Get access token using confidential client (legacy mode)."""
+        tokens = self.get_tokens()
+
+        if not tokens:
+            raise AuthenticationError(
+                "No authentication tokens found. "
+                "Run 'outclaw auth login' to authenticate."
+            )
+
+        if self._needs_refresh(tokens):
+            tokens = self._refresh_tokens(tokens)
+
+        return tokens["access_token"]
+
+    # ------------------------------------------------------------------
+    # Public client helpers
+    # ------------------------------------------------------------------
+
+    def get_msal_app(self) -> PublicClientApplication:
+        """
+        Get the MSAL PublicClientApplication instance.
+
+        Only available in public client mode. Used by auth_flow for login.
+
+        Returns:
+            PublicClientApplication instance
+
+        Raises:
+            ConfigurationError: If not in public client mode
+        """
+        if not self.public_client_mode:
+            raise ConfigurationError("get_msal_app() is only available in public client mode.")
+        return self._app
+
+    def get_msal_cache(self) -> SerializableTokenCache:
+        """
+        Get the MSAL token cache.
+
+        Only available in public client mode.
+
+        Returns:
+            SerializableTokenCache instance
+        """
+        if not self.public_client_mode:
+            raise ConfigurationError("get_msal_cache() is only available in public client mode.")
+        return self._cache
+
+    # ------------------------------------------------------------------
+    # Confidential client (legacy) token storage
+    # ------------------------------------------------------------------
+
     def save_tokens(self, tokens: dict[str, Any]) -> None:
         """
-        Save tokens securely.
+        Save tokens securely (confidential client mode only).
 
         Args:
             tokens: Token dictionary from MSAL
@@ -154,7 +319,7 @@ class TokenManager:
 
     def get_tokens(self) -> dict[str, Any] | None:
         """
-        Retrieve stored tokens.
+        Retrieve stored tokens (confidential client mode).
 
         Returns:
             Token dictionary or None if no tokens found
@@ -194,28 +359,6 @@ class TokenManager:
 
         return None
 
-    def get_access_token(self) -> str:
-        """
-        Get a valid access token, refreshing if necessary.
-
-        Returns:
-            Valid access token string
-
-        Raises:
-            AuthenticationError: If no tokens found or refresh fails
-        """
-        tokens = self.get_tokens()
-
-        if not tokens:
-            raise AuthenticationError(
-                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
-            )
-
-        if self._needs_refresh(tokens):
-            tokens = self._refresh_tokens(tokens)
-
-        return tokens["access_token"]
-
     def _needs_refresh(self, tokens: dict[str, Any]) -> bool:
         """Check if access token needs to be refreshed."""
         if "expires_in" not in tokens or "saved_at" not in tokens:
@@ -230,7 +373,7 @@ class TokenManager:
 
     def _refresh_tokens(self, tokens: dict[str, Any]) -> dict[str, Any]:
         """
-        Refresh access token using refresh token.
+        Refresh access token using refresh token (confidential client mode).
 
         Args:
             tokens: Current token dictionary
@@ -244,7 +387,8 @@ class TokenManager:
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
             raise AuthenticationError(
-                "No refresh token available. " "Run 'outclaw auth login' to re-authenticate."
+                "No refresh token available. "
+                "Run 'outclaw auth login' to re-authenticate."
             )
 
         try:
@@ -268,21 +412,38 @@ class TokenManager:
         except Exception as e:
             raise AuthenticationError(f"Failed to refresh token: {e}") from e
 
+    # ------------------------------------------------------------------
+    # Shared operations
+    # ------------------------------------------------------------------
+
     def clear_tokens(self) -> None:
         """Clear all stored tokens (logout)."""
-        # Clear keyring
-        if self.use_keyring and KEYRING_AVAILABLE:
-            with contextlib.suppress(Exception):
-                keyring.delete_password(self.KEYRING_SERVICE, self.KEYRING_USERNAME)
+        if self.public_client_mode:
+            # Remove MSAL cache file
+            if CACHE_FILE.exists():
+                with contextlib.suppress(Exception):
+                    CACHE_FILE.unlink()
+            # Reset in-memory cache
+            self._cache = SerializableTokenCache()
+            self._app = PublicClientApplication(
+                client_id=self.client_id,
+                authority=self.authority,
+                token_cache=self._cache,
+            )
+        else:
+            # Clear keyring
+            if self.use_keyring and KEYRING_AVAILABLE:
+                with contextlib.suppress(Exception):
+                    keyring.delete_password(self.KEYRING_SERVICE, self.KEYRING_USERNAME)
 
-        # Clear file
-        if self.token_file.exists():
-            with contextlib.suppress(Exception):
-                self.token_file.unlink()
+            # Clear file
+            if self.token_file.exists():
+                with contextlib.suppress(Exception):
+                    self.token_file.unlink()
 
-        # Clear cache
-        self._cached_tokens = None
-        self._cache_time = None
+            # Clear cache
+            self._cached_tokens = None
+            self._cache_time = None
 
     def get_token_info(self) -> dict[str, Any] | None:
         """
@@ -291,6 +452,53 @@ class TokenManager:
         Returns:
             Token metadata (no sensitive values) or None
         """
+        if self.public_client_mode:
+            return self._get_token_info_public()
+        return self._get_token_info_confidential()
+
+    def _get_token_info_public(self) -> dict[str, Any] | None:
+        """Get token info for public client mode."""
+        accounts = self._app.get_accounts()
+        if not accounts:
+            return None
+
+        account = accounts[0]
+
+        # Try a silent acquisition to check validity
+        result = self._app.acquire_token_silent(
+            scopes=self.scopes,
+            account=account,
+        )
+
+        _save_msal_cache(self._cache)
+
+        if result and "access_token" in result:
+            expires_in = result.get("expires_in", 0)
+            return {
+                "account": account.get("username", "Unknown"),
+                "is_expired": False,
+                "needs_refresh": False,
+                "expires_in_seconds": expires_in,
+                "time_until_expiry_seconds": expires_in,
+                "scopes": self.scopes,
+                "storage_location": str(CACHE_FILE),
+                "mode": "public_client (device code flow)",
+            }
+
+        # Tokens exist but can't be refreshed
+        return {
+            "account": account.get("username", "Unknown"),
+            "is_expired": True,
+            "needs_refresh": True,
+            "expires_in_seconds": 0,
+            "time_until_expiry_seconds": 0,
+            "scopes": self.scopes,
+            "storage_location": str(CACHE_FILE),
+            "mode": "public_client (device code flow)",
+        }
+
+    def _get_token_info_confidential(self) -> dict[str, Any] | None:
+        """Get token info for confidential client mode."""
         tokens = self.get_tokens()
         if not tokens:
             return None
@@ -316,10 +524,13 @@ class TokenManager:
             "needs_refresh": self._needs_refresh(tokens),
             "scopes": tokens.get("scope", "").split() if tokens.get("scope") else [],
             "storage_location": storage_location,
+            "mode": "confidential_client (authorization code flow)",
         }
 
     @property
     def is_authenticated(self) -> bool:
         """Check if valid tokens exist."""
+        if self.public_client_mode:
+            return bool(self._app.get_accounts())
         tokens = self.get_tokens()
         return tokens is not None and "access_token" in tokens
