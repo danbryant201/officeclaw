@@ -731,15 +731,13 @@ def tasks_list(ctx: click.Context, list_id: str, status: str) -> None:
     """List tasks in a task list."""
     try:
         with GraphClient() as client:
-            params: dict[str, Any] = {
-                "$select": "id,title,status,importance,dueDateTime",
-            }
+            params: dict[str, Any] = {}
             if status == "active":
                 params["$filter"] = "status ne 'completed'"
             elif status == "completed":
                 params["$filter"] = "status eq 'completed'"
 
-            tasks_list = client.get_all(f"/me/todo/lists/{list_id}/tasks", params=params)
+            tasks_list = client.get_all(f"/me/todo/lists/{list_id}/tasks", params=params or None)
 
             if ctx.obj.get("json"):
                 output_json(tasks_list)

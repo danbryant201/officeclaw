@@ -88,10 +88,6 @@ class TasksClient:
 
         if select:
             params["$select"] = select
-        else:
-            params["$select"] = (
-                "id,title,status,importance,dueDateTime,completedDateTime,createdDateTime"
-            )
 
         if status:
             if status == "completed":
