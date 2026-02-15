@@ -49,7 +49,9 @@ class GraphClient:
         load_dotenv()
 
         self.token_manager = token_manager or TokenManager()
-        self.base_url = os.getenv("OFFICECLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0")
+        self.base_url = os.getenv(
+            "OFFICECLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0"
+        )
         self.max_retries = int(os.getenv("OFFICECLAW_MAX_RETRIES", "3"))
         self.request_timeout = int(os.getenv("OFFICECLAW_REQUEST_TIMEOUT", "30"))
         self.rate_limit_wait = int(os.getenv("OFFICECLAW_RATE_LIMIT_WAIT", "60"))
