@@ -505,6 +505,8 @@ class TokenManager:
 
         saved_at_str = tokens.get("saved_at", "1970-01-01T00:00:00+00:00")
         saved_at = datetime.fromisoformat(saved_at_str.replace("Z", "+00:00"))
+        if saved_at.tzinfo is None:
+            saved_at = saved_at.replace(tzinfo=timezone.utc)
         expires_in = tokens.get("expires_in", 0)
         expires_at = saved_at + timedelta(seconds=expires_in)
         time_until_expiry = expires_at - datetime.now(timezone.utc)
