@@ -1,6 +1,12 @@
-# Officeclaw
+<p align="center">
+  <img src="docs/logo.png" alt="OfficeClaw" width="200">
+</p>
 
-> Microsoft Graph API integration for OpenClaw agents — manage email, calendar, and tasks.
+<h1 align="center">OfficeClaw</h1>
+
+<p align="center">
+  <em>Microsoft Graph API integration for OpenClaw agents — manage email, calendar, and tasks.</em>
+</p>
 
 [![PyPI](https://img.shields.io/pypi/v/officeclaw.svg)](https://pypi.org/project/officeclaw/)
 [![Python](https://img.shields.io/pypi/pyversions/officeclaw.svg)](https://pypi.org/project/officeclaw/)
