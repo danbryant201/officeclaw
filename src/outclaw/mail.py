@@ -91,6 +91,7 @@ class MailClient:
         bcc: str | list[str] | None = None,
         content_type: str = "Text",
         save_to_sent: bool = True,
+        attachments: list[dict[str, Any]] | None = None,
     ) -> None:
         """
         Send an email message.
@@ -103,6 +104,8 @@ class MailClient:
             bcc: BCC recipient(s)
             content_type: "Text" or "HTML"
             save_to_sent: Save copy to Sent Items
+            attachments: List of attachment dicts with @odata.type, name,
+                contentType, and contentBytes (base64-encoded)
         """
         # Normalize recipients to lists
         to_list = [to] if isinstance(to, str) else to
@@ -130,6 +133,9 @@ class MailClient:
             message["message"]["bccRecipients"] = [
                 {"emailAddress": {"address": addr}} for addr in bcc_list
             ]
+
+        if attachments:
+            message["message"]["attachments"] = attachments
 
         self._client.post("/me/sendMail", message)
 
@@ -220,6 +226,39 @@ class MailClient:
             Updated message object
         """
         return self.move(message_id, "archive")
+
+    def search(
+        self,
+        query: str,
+        folder: str | None = None,
+        limit: int = 25,
+    ) -> list[dict[str, Any]]:
+        """
+        Search for messages.
+
+        Args:
+            query: Search query string
+            folder: Specific folder to search (None = all folders)
+            limit: Maximum results
+
+        Returns:
+            List of matching messages
+        """
+        params: dict[str, Any] = {
+            "$search": f'"{query}"',
+            "$top": limit,
+            "$select": (
+                "id,subject,from,toRecipients,receivedDateTime,isRead,importance,bodyPreview"
+            ),
+        }
+
+        if folder:
+            folder_id = self._get_folder_id(folder)
+            endpoint = f"/me/mailFolders/{folder_id}/messages"
+        else:
+            endpoint = "/me/messages"
+
+        return self._client.get_all(endpoint, params=params, limit=limit)
 
     def _get_folder_id(self, folder: str) -> str:
         """Get folder ID from name or return as-is if already an ID."""

@@ -45,6 +45,7 @@ class TokenManager:
     """
 
     KEYRING_SERVICE = "outclaw"
+    LEGACY_KEYRING_SERVICE = "out-claw"
     KEYRING_USERNAME = "microsoft-graph-tokens"
 
     DEFAULT_SCOPES = [
@@ -162,19 +163,24 @@ class TokenManager:
         if self._cached_tokens and self._cache_time and time.time() - self._cache_time < 60:
             return self._cached_tokens
 
-        # Try keyring
+        # Try keyring (current service name, then legacy "out-claw" fallback)
         if self.use_keyring and KEYRING_AVAILABLE:
-            try:
-                token_json = keyring.get_password(
-                    self.KEYRING_SERVICE,
-                    self.KEYRING_USERNAME,
-                )
-                if token_json:
-                    tokens = json.loads(token_json)
-                    self._update_cache(tokens)
-                    return tokens
-            except Exception:  # noqa: S110
-                pass  # Fall through to file storage
+            for service in (self.KEYRING_SERVICE, self.LEGACY_KEYRING_SERVICE):
+                try:
+                    token_json = keyring.get_password(
+                        service,
+                        self.KEYRING_USERNAME,
+                    )
+                    if token_json:
+                        tokens = json.loads(token_json)
+                        # Migrate legacy tokens to new service name
+                        if service == self.LEGACY_KEYRING_SERVICE:
+                            self.save_tokens(tokens)
+                        else:
+                            self._update_cache(tokens)
+                        return tokens
+                except Exception:  # noqa: S110, S112
+                    continue
 
         # Try file storage
         if self.token_file.exists():

@@ -236,12 +236,32 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
 @click.option("--to", required=True, help="Recipient email address")
 @click.option("--subject", required=True, help="Email subject")
 @click.option("--body", required=True, help="Email body")
+@click.option("--attachment", multiple=True, help="File path to attach (repeatable)")
 @click.pass_context
-def mail_send(ctx: click.Context, to: str, subject: str, body: str) -> None:
+def mail_send(ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]) -> None:
     """Send an email message."""
+    import base64
+    import mimetypes
+    from pathlib import Path
+
     try:
+        attachments = []
+        for file_path in attachment:
+            p = Path(file_path)
+            if not p.exists():
+                error_console.print(f"[red]File not found:[/red] {file_path}")
+                sys.exit(1)
+            content_type = mimetypes.guess_type(str(p))[0] or "application/octet-stream"
+            content_bytes = base64.b64encode(p.read_bytes()).decode("utf-8")
+            attachments.append({
+                "@odata.type": "#microsoft.graph.fileAttachment",
+                "name": p.name,
+                "contentType": content_type,
+                "contentBytes": content_bytes,
+            })
+
         with GraphClient() as client:
-            message = {
+            message: dict[str, Any] = {
                 "message": {
                     "subject": subject,
                     "body": {"contentType": "Text", "content": body},
@@ -249,6 +269,8 @@ def mail_send(ctx: click.Context, to: str, subject: str, body: str) -> None:
                 },
                 "saveToSentItems": True,
             }
+            if attachments:
+                message["message"]["attachments"] = attachments
             client.post("/me/sendMail", message)
 
             if ctx.obj.get("json"):
@@ -256,6 +278,166 @@ def mail_send(ctx: click.Context, to: str, subject: str, body: str) -> None:
             else:
                 console.print(f"[green]✓[/green] Email sent to {to}")
 
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("reply")
+@click.argument("message_id")
+@click.option("--body", required=True, help="Reply body")
+@click.option("--reply-all", is_flag=True, help="Reply to all recipients")
+@click.pass_context
+def mail_reply(ctx: click.Context, message_id: str, body: str, reply_all: bool) -> None:
+    """Reply to an email message."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            mc.reply(message_id, body, reply_all=reply_all)
+
+        if ctx.obj.get("json"):
+            output_json({"replied": True, "message_id": message_id, "reply_all": reply_all})
+        else:
+            action = "Reply-all" if reply_all else "Reply"
+            console.print(f"[green]✓[/green] {action} sent.")
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("forward")
+@click.argument("message_id")
+@click.option("--to", required=True, help="Recipient email address")
+@click.option("--comment", default="", help="Optional comment")
+@click.pass_context
+def mail_forward(ctx: click.Context, message_id: str, to: str, comment: str) -> None:
+    """Forward an email message."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            mc.forward(message_id, to, comment=comment)
+
+        if ctx.obj.get("json"):
+            output_json({"forwarded": True, "message_id": message_id, "to": to})
+        else:
+            console.print(f"[green]✓[/green] Message forwarded to {to}")
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("move")
+@click.argument("message_id")
+@click.option("--folder", required=True, help="Destination folder name or ID")
+@click.pass_context
+def mail_move(ctx: click.Context, message_id: str, folder: str) -> None:
+    """Move a message to a folder."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            result = mc.move(message_id, folder)
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Message moved to {folder}")
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("delete")
+@click.argument("message_id")
+@click.pass_context
+def mail_delete(ctx: click.Context, message_id: str) -> None:
+    """Delete an email message."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            mc.delete(message_id)
+
+        if ctx.obj.get("json"):
+            output_json({"deleted": True, "message_id": message_id})
+        else:
+            console.print("[green]✓[/green] Message deleted.")
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("search")
+@click.argument("query")
+@click.option("--folder", default=None, help="Folder to search (default: all)")
+@click.option("--limit", default=25, help="Maximum results")
+@click.pass_context
+def mail_search(ctx: click.Context, query: str, folder: str | None, limit: int) -> None:
+    """Search email messages."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            messages = mc.search(query, folder=folder, limit=limit)
+
+        if ctx.obj.get("json"):
+            output_json(messages)
+            return
+
+        if not messages:
+            console.print("[yellow]No messages found.[/yellow]")
+            return
+
+        table = Table(title=f'Search: "{query}"')
+        table.add_column("From", style="cyan", max_width=25)
+        table.add_column("Subject", max_width=40)
+        table.add_column("Date", style="dim")
+
+        for msg in messages:
+            from_addr = msg.get("from", {}).get("emailAddress", {})
+            from_name = from_addr.get("name", from_addr.get("address", "Unknown"))
+            subject = msg.get("subject", "(No subject)")[:40]
+            date = msg.get("receivedDateTime", "")[:10]
+            table.add_row(from_name[:25], subject, date)
+
+        console.print(table)
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("mark-read")
+@click.argument("message_id")
+@click.option("--unread", is_flag=True, help="Mark as unread instead")
+@click.pass_context
+def mail_mark_read(ctx: click.Context, message_id: str, unread: bool) -> None:
+    """Mark a message as read (or unread with --unread)."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            result = mc.mark_read(message_id, is_read=not unread)
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            status = "unread" if unread else "read"
+            console.print(f"[green]✓[/green] Message marked as {status}.")
+    except Exception as e:
+        handle_error(e)
+
+
+@mail.command("archive")
+@click.argument("message_id")
+@click.pass_context
+def mail_archive(ctx: click.Context, message_id: str) -> None:
+    """Archive a message (move to Archive folder)."""
+    try:
+        from outclaw.mail import MailClient
+
+        with MailClient() as mc:
+            result = mc.archive(message_id)
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print("[green]✓[/green] Message archived.")
     except Exception as e:
         handle_error(e)
 
@@ -318,6 +500,37 @@ def calendar_list(ctx: click.Context, start: str, end: str, limit: int) -> None:
         handle_error(e)
 
 
+@calendar.command("get")
+@click.argument("event_id")
+@click.pass_context
+def calendar_get(ctx: click.Context, event_id: str) -> None:
+    """Get a specific calendar event."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            event = cc.get_event(event_id)
+
+        if ctx.obj.get("json"):
+            output_json(event)
+            return
+
+        console.print(f"[bold]Subject:[/bold] {event.get('subject')}")
+        start = event.get("start", {})
+        console.print(f"[bold]Start:[/bold] {start.get('dateTime')} ({start.get('timeZone')})")
+        end = event.get("end", {})
+        console.print(f"[bold]End:[/bold] {end.get('dateTime')} ({end.get('timeZone')})")
+        location = event.get("location", {}).get("displayName", "")
+        if location:
+            console.print(f"[bold]Location:[/bold] {location}")
+        body_preview = event.get("bodyPreview", "")
+        if body_preview:
+            console.print()
+            console.print(body_preview)
+    except Exception as e:
+        handle_error(e)
+
+
 @calendar.command("create")
 @click.option("--subject", required=True, help="Event subject")
 @click.option("--start", required=True, help="Start datetime (YYYY-MM-DDTHH:MM:SS)")
@@ -343,6 +556,127 @@ def calendar_create(ctx: click.Context, subject: str, start: str, end: str, loca
             else:
                 console.print(f"[green]✓[/green] Event created: {subject}")
 
+    except Exception as e:
+        handle_error(e)
+
+
+@calendar.command("update")
+@click.argument("event_id")
+@click.option("--subject", default=None, help="New subject")
+@click.option("--start", default=None, help="New start datetime")
+@click.option("--end", default=None, help="New end datetime")
+@click.option("--location", default=None, help="New location")
+@click.option("--body", default=None, help="New description")
+@click.pass_context
+def calendar_update(
+    ctx: click.Context, event_id: str, subject: str | None,
+    start: str | None, end: str | None, location: str | None, body: str | None,
+) -> None:
+    """Update a calendar event."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            result = cc.update_event(
+                event_id, subject=subject, start=start, end=end,
+                location=location, body=body,
+            )
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Event updated: {result.get('subject', event_id)}")
+    except Exception as e:
+        handle_error(e)
+
+
+@calendar.command("delete")
+@click.argument("event_id")
+@click.pass_context
+def calendar_delete(ctx: click.Context, event_id: str) -> None:
+    """Delete a calendar event."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            cc.delete_event(event_id)
+
+        if ctx.obj.get("json"):
+            output_json({"deleted": True, "event_id": event_id})
+        else:
+            console.print("[green]✓[/green] Event deleted.")
+    except Exception as e:
+        handle_error(e)
+
+
+@calendar.command("accept")
+@click.argument("event_id")
+@click.option("--comment", default="", help="Response comment")
+@click.pass_context
+def calendar_accept(ctx: click.Context, event_id: str, comment: str) -> None:
+    """Accept a meeting invitation."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            cc.accept_event(event_id, comment=comment)
+
+        if ctx.obj.get("json"):
+            output_json({"accepted": True, "event_id": event_id})
+        else:
+            console.print("[green]✓[/green] Meeting accepted.")
+    except Exception as e:
+        handle_error(e)
+
+
+@calendar.command("decline")
+@click.argument("event_id")
+@click.option("--comment", default="", help="Response comment")
+@click.pass_context
+def calendar_decline(ctx: click.Context, event_id: str, comment: str) -> None:
+    """Decline a meeting invitation."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            cc.decline_event(event_id, comment=comment)
+
+        if ctx.obj.get("json"):
+            output_json({"declined": True, "event_id": event_id})
+        else:
+            console.print("[green]✓[/green] Meeting declined.")
+    except Exception as e:
+        handle_error(e)
+
+
+@calendar.command("list-calendars")
+@click.pass_context
+def calendar_list_calendars(ctx: click.Context) -> None:
+    """List all calendars."""
+    try:
+        from outclaw.calendar import CalendarClient
+
+        with CalendarClient() as cc:
+            calendars = cc.list_calendars()
+
+        if ctx.obj.get("json"):
+            output_json(calendars)
+            return
+
+        if not calendars:
+            console.print("[yellow]No calendars found.[/yellow]")
+            return
+
+        table = Table(title="Calendars")
+        table.add_column("Name", style="cyan")
+        table.add_column("ID", style="dim", max_width=20)
+
+        for cal in calendars:
+            name = cal.get("name", "")
+            cal_id = cal.get("id", "")[:20]
+            table.add_row(name, cal_id + "...")
+
+        console.print(table)
     except Exception as e:
         handle_error(e)
 
@@ -512,6 +846,86 @@ def tasks_reopen(ctx: click.Context, list_id: str, task_id: str) -> None:
             else:
                 console.print("[green]✓[/green] Task reopened.")
 
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks.command("get")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.pass_context
+def tasks_get(ctx: click.Context, list_id: str, task_id: str) -> None:
+    """Get a specific task."""
+    try:
+        from outclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            task = tc.get_task(list_id, task_id)
+
+        if ctx.obj.get("json"):
+            output_json(task)
+            return
+
+        console.print(f"[bold]Title:[/bold] {task.get('title')}")
+        console.print(f"[bold]Status:[/bold] {task.get('status')}")
+        console.print(f"[bold]Importance:[/bold] {task.get('importance')}")
+        due = task.get("dueDateTime")
+        if due:
+            console.print(f"[bold]Due:[/bold] {due.get('dateTime', '')[:10]}")
+        body = task.get("body", {}).get("content", "")
+        if body:
+            console.print()
+            console.print(body)
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks.command("update")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.option("--title", default=None, help="New title")
+@click.option("--body", default=None, help="New description")
+@click.option("--due-date", default=None, help="New due date (YYYY-MM-DD)")
+@click.option("--importance", type=click.Choice(["low", "normal", "high"]), default=None, help="Importance")
+@click.pass_context
+def tasks_update(
+    ctx: click.Context, list_id: str, task_id: str,
+    title: str | None, body: str | None, due_date: str | None, importance: str | None,
+) -> None:
+    """Update a task."""
+    try:
+        from outclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            result = tc.update_task(
+                list_id, task_id, title=title, body=body,
+                due_date=due_date, importance=importance,
+            )
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Task updated: {result.get('title', task_id)}")
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks.command("delete")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.pass_context
+def tasks_delete(ctx: click.Context, list_id: str, task_id: str) -> None:
+    """Delete a task."""
+    try:
+        from outclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            tc.delete_task(list_id, task_id)
+
+        if ctx.obj.get("json"):
+            output_json({"deleted": True, "task_id": task_id})
+        else:
+            console.print("[green]✓[/green] Task deleted.")
     except Exception as e:
         handle_error(e)
 
