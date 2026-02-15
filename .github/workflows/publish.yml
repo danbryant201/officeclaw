@@ -1,5 +1,5 @@
 # ============================================
-# OUTCLAW - Publish to PyPI
+# OFFICECLAW - Publish to PyPI
 # ============================================
 # Triggered on version tags (v*) or manual dispatch
 # Builds and publishes to PyPI via trusted publishing
@@ -75,7 +75,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi')
     environment:
       name: testpypi
-      url: https://test.pypi.org/project/outclaw/
+      url: https://test.pypi.org/project/officeclaw/
     permissions:
       id-token: write  # For trusted publishing
 
@@ -103,7 +103,7 @@ jobs:
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
     environment:
       name: pypi
-      url: https://pypi.org/project/outclaw/
+      url: https://pypi.org/project/officeclaw/
     permissions:
       id-token: write  # For trusted publishing
 
@@ -136,9 +136,9 @@ jobs:
 
       - name: Install from PyPI
         run: |
-          pip install outclaw
-          outclaw --version
-          outclaw --help
+          pip install officeclaw
+          officeclaw --version
+          officeclaw --help
 
       - name: Verify import
-        run: python -c "import outclaw; print(f'outclaw {outclaw.__version__}')"
+        run: python -c "import officeclaw; print(f'officeclaw {officeclaw.__version__}')"

@@ -15,8 +15,8 @@ from urllib.parse import urljoin
 import requests
 from dotenv import load_dotenv
 
-from outclaw.auth import TokenManager
-from outclaw.exceptions import (
+from officeclaw.auth import TokenManager
+from officeclaw.exceptions import (
     AuthenticationError,
     GraphAPIError,
     RateLimitError,
@@ -49,10 +49,10 @@ class GraphClient:
         load_dotenv()
 
         self.token_manager = token_manager or TokenManager()
-        self.base_url = os.getenv("OUTCLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0")
-        self.max_retries = int(os.getenv("OUTCLAW_MAX_RETRIES", "3"))
-        self.request_timeout = int(os.getenv("OUTCLAW_REQUEST_TIMEOUT", "30"))
-        self.rate_limit_wait = int(os.getenv("OUTCLAW_RATE_LIMIT_WAIT", "60"))
+        self.base_url = os.getenv("OFFICECLAW_GRAPH_API_ENDPOINT", "https://graph.microsoft.com/v1.0")
+        self.max_retries = int(os.getenv("OFFICECLAW_MAX_RETRIES", "3"))
+        self.request_timeout = int(os.getenv("OFFICECLAW_REQUEST_TIMEOUT", "30"))
+        self.rate_limit_wait = int(os.getenv("OFFICECLAW_RATE_LIMIT_WAIT", "60"))
 
         # Session for connection pooling
         self._session = requests.Session()

@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 class TestMailClient:
     """Test MailClient operations."""
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_list_messages(self, mock_client_class, sample_messages):
         """Test listing messages."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_messages
@@ -27,10 +27,10 @@ class TestMailClient:
         call_args = mock_client.get_all.call_args
         assert "/me/mailFolders/inbox/messages" in call_args[0][0]
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_list_messages_with_filter(self, mock_client_class, sample_messages):
         """Test listing messages with filter."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = [sample_messages[0]]
@@ -43,10 +43,10 @@ class TestMailClient:
         call_args = mock_client.get_all.call_args
         assert "$filter" in call_args[1]["params"]
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_get_message(self, mock_client_class, sample_message):
         """Test getting a specific message."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.get.return_value = sample_message
@@ -58,10 +58,10 @@ class TestMailClient:
         assert message["subject"] == sample_message["subject"]
         mock_client.get.assert_called_with("/me/messages/msg-123")
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_send_message(self, mock_client_class):
         """Test sending a message."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = None
@@ -79,10 +79,10 @@ class TestMailClient:
         assert call_args[0][0] == "/me/sendMail"
         assert "message" in call_args[0][1]
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_send_message_multiple_recipients(self, mock_client_class):
         """Test sending to multiple recipients."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = None
@@ -101,10 +101,10 @@ class TestMailClient:
         assert len(message["toRecipients"]) == 2
         assert len(message["ccRecipients"]) == 1
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_mark_read(self, mock_client_class, sample_message):
         """Test marking message as read."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         updated = {**sample_message, "isRead": True}
@@ -120,10 +120,10 @@ class TestMailClient:
             {"isRead": True},
         )
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_delete_message(self, mock_client_class):
         """Test deleting a message."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.delete.return_value = None
@@ -134,10 +134,10 @@ class TestMailClient:
 
         mock_client.delete.assert_called_with("/me/messages/msg-123")
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_reply(self, mock_client_class):
         """Test replying to a message."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = None
@@ -151,10 +151,10 @@ class TestMailClient:
             {"comment": "Thanks for your email!"},
         )
 
-    @patch("outclaw.mail.GraphClient")
+    @patch("officeclaw.mail.GraphClient")
     def test_archive(self, mock_client_class, sample_message):
         """Test archiving a message."""
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = sample_message

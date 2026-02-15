@@ -10,19 +10,19 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from outclaw.exceptions import AuthenticationError, ConfigurationError
+from officeclaw.exceptions import AuthenticationError, ConfigurationError
 
 
 class TestTokenManagerPublicClient:
     """Test TokenManager in public client (device code) mode."""
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-client-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-client-id"}, clear=True)
     def test_init_public_client(self, mock_cache, mock_app, mock_dotenv):
         """Test initialization in public client mode (no secret)."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
 
@@ -32,24 +32,24 @@ class TestTokenManagerPublicClient:
         assert manager.public_client_mode is True
         mock_app.assert_called_once()
 
-    @patch("outclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.load_dotenv")
     @patch.dict("os.environ", {}, clear=True)
     def test_init_missing_client_id(self, mock_dotenv):
         """Test initialization fails without client ID."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         with pytest.raises(ConfigurationError) as exc_info:
             TokenManager()
 
-        assert "OUTCLAW_CLIENT_ID" in str(exc_info.value)
+        assert "OFFICECLAW_CLIENT_ID" in str(exc_info.value)
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_get_access_token_no_accounts(self, mock_cache, mock_app_class, mock_dotenv):
         """Test getting access token when not authenticated."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app = MagicMock()
@@ -63,14 +63,14 @@ class TestTokenManagerPublicClient:
 
         assert "No authentication tokens" in str(exc_info.value)
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth._save_msal_cache")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth._save_msal_cache")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_get_access_token_success(self, mock_cache, mock_app_class, mock_save, mock_dotenv):
         """Test successful token acquisition via silent flow."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app = MagicMock()
@@ -87,13 +87,13 @@ class TestTokenManagerPublicClient:
         assert token == "test-access-token"  # noqa: S105
         mock_app.acquire_token_silent.assert_called_once()
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_get_access_token_silent_fails(self, mock_cache, mock_app_class, mock_dotenv):
         """Test error when silent acquisition fails."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app = MagicMock()
@@ -106,15 +106,15 @@ class TestTokenManagerPublicClient:
         with pytest.raises(AuthenticationError) as exc_info:
             manager.get_access_token()
 
-        assert "outclaw auth login" in str(exc_info.value)
+        assert "officeclaw auth login" in str(exc_info.value)
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_is_authenticated_true(self, mock_cache, mock_app_class, mock_dotenv):
         """Test is_authenticated returns True when accounts exist."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app = MagicMock()
@@ -124,13 +124,13 @@ class TestTokenManagerPublicClient:
         manager = TokenManager()
         assert manager.is_authenticated is True
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_is_authenticated_false(self, mock_cache, mock_app_class, mock_dotenv):
         """Test is_authenticated returns False when no accounts."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app = MagicMock()
@@ -140,14 +140,14 @@ class TestTokenManagerPublicClient:
         manager = TokenManager()
         assert manager.is_authenticated is False
 
-    @patch("outclaw.auth.load_dotenv")
-    @patch("outclaw.auth.CACHE_FILE")
-    @patch("outclaw.auth.PublicClientApplication")
-    @patch("outclaw.auth._load_msal_cache")
-    @patch.dict("os.environ", {"OUTCLAW_CLIENT_ID": "test-id"}, clear=True)
+    @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.CACHE_FILE")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
+    @patch.dict("os.environ", {"OFFICECLAW_CLIENT_ID": "test-id"}, clear=True)
     def test_clear_tokens(self, mock_cache, mock_app_class, mock_cache_file, mock_dotenv):
         """Test clearing tokens in public client mode."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         mock_cache.return_value = MagicMock()
         mock_app_class.return_value = MagicMock()
@@ -165,14 +165,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-client-id",
-            "OUTCLAW_CLIENT_SECRET": "test-client-secret",
+            "OFFICECLAW_CLIENT_ID": "test-client-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-client-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_init_confidential_client(self, mock_app):
         """Test initialization in confidential client mode."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
 
@@ -183,15 +183,15 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
-    @patch("outclaw.auth.KEYRING_AVAILABLE", False)
+    @patch("officeclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.KEYRING_AVAILABLE", False)
     def test_save_tokens_to_file(self, mock_app, tmp_path):
         """Test saving tokens to file when keyring unavailable."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
         manager.token_dir = tmp_path
@@ -216,15 +216,15 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
-    @patch("outclaw.auth.KEYRING_AVAILABLE", False)
+    @patch("officeclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.KEYRING_AVAILABLE", False)
     def test_get_tokens_from_file(self, mock_app, tmp_path):
         """Test retrieving tokens from file."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         token_file = tmp_path / "tokens.json"
         tokens = {
@@ -247,14 +247,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_get_access_token_no_tokens(self, mock_app):
         """Test getting access token when not authenticated."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
         manager._cached_tokens = None
@@ -268,14 +268,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_no_expiry_info(self, mock_app):
         """Test needs_refresh returns True when no expiry info."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
 
@@ -285,14 +285,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_expired(self, mock_app):
         """Test needs_refresh returns True for expired tokens."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
 
@@ -308,14 +308,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_needs_refresh_valid(self, mock_app):
         """Test needs_refresh returns False for valid tokens."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
 
@@ -331,14 +331,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_clear_tokens(self, mock_app, tmp_path):
         """Test clearing tokens."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         token_file = tmp_path / "tokens.json"
         token_file.write_text('{"access_token": "test"}')
@@ -356,14 +356,14 @@ class TestTokenManagerConfidentialClient:
     @patch.dict(
         "os.environ",
         {
-            "OUTCLAW_CLIENT_ID": "test-id",
-            "OUTCLAW_CLIENT_SECRET": "test-secret",
+            "OFFICECLAW_CLIENT_ID": "test-id",
+            "OFFICECLAW_CLIENT_SECRET": "test-secret",
         },
     )
-    @patch("outclaw.auth.ConfidentialClientApplication")
+    @patch("officeclaw.auth.ConfidentialClientApplication")
     def test_get_token_info(self, mock_app):
         """Test getting token info for status display."""
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         manager = TokenManager()
 

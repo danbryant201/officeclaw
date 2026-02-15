@@ -10,10 +10,10 @@ from unittest.mock import MagicMock, patch
 class TestCalendarClient:
     """Test CalendarClient operations."""
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_list_events(self, mock_client_class, sample_events):
         """Test listing events."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_events
@@ -27,10 +27,10 @@ class TestCalendarClient:
         call_args = mock_client.get_all.call_args
         assert "/me/calendarView" in call_args[0][0]
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_list_events_with_dates(self, mock_client_class, sample_events):
         """Test listing events with date parameters."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_events
@@ -46,10 +46,10 @@ class TestCalendarClient:
         assert "2026-02-01" in params["startDateTime"]
         assert "2026-02-28" in params["endDateTime"]
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_get_event(self, mock_client_class, sample_event):
         """Test getting a specific event."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.get.return_value = sample_event
@@ -61,10 +61,10 @@ class TestCalendarClient:
         assert event["subject"] == sample_event["subject"]
         mock_client.get.assert_called_with("/me/events/evt-123")
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_create_event(self, mock_client_class, sample_event):
         """Test creating an event."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = sample_event
@@ -83,10 +83,10 @@ class TestCalendarClient:
         assert call_args[0][0] == "/me/events"
         assert call_args[0][1]["subject"] == "Team Meeting"
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_create_event_with_attendees(self, mock_client_class, sample_event):
         """Test creating event with attendees."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = sample_event
@@ -105,10 +105,10 @@ class TestCalendarClient:
         assert "attendees" in event_data
         assert len(event_data["attendees"]) == 2
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_create_online_meeting(self, mock_client_class, sample_event):
         """Test creating Teams meeting."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = sample_event
@@ -126,10 +126,10 @@ class TestCalendarClient:
         event_data = call_args[0][1]
         assert event_data["isOnlineMeeting"] is True
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_update_event(self, mock_client_class, sample_event):
         """Test updating an event."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         updated = {**sample_event, "subject": "Updated Meeting"}
@@ -142,10 +142,10 @@ class TestCalendarClient:
         assert result["subject"] == "Updated Meeting"
         mock_client.patch.assert_called_once()
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_delete_event(self, mock_client_class):
         """Test deleting an event."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.delete.return_value = None
@@ -156,10 +156,10 @@ class TestCalendarClient:
 
         mock_client.delete.assert_called_with("/me/events/evt-123")
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_accept_event(self, mock_client_class):
         """Test accepting meeting invitation."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = None
@@ -173,10 +173,10 @@ class TestCalendarClient:
             {"comment": "Looking forward to it!", "sendResponse": True},
         )
 
-    @patch("outclaw.calendar.GraphClient")
+    @patch("officeclaw.calendar.GraphClient")
     def test_decline_event(self, mock_client_class):
         """Test declining meeting invitation."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         mock_client = MagicMock()
         mock_client.post.return_value = None
@@ -192,7 +192,7 @@ class TestCalendarClient:
 
     def test_normalize_datetime_date_only(self):
         """Test datetime normalization with date only."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         client = CalendarClient.__new__(CalendarClient)
 
@@ -204,7 +204,7 @@ class TestCalendarClient:
 
     def test_normalize_datetime_full(self):
         """Test datetime normalization with full datetime."""
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         client = CalendarClient.__new__(CalendarClient)
 

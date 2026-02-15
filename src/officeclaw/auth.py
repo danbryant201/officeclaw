@@ -7,7 +7,7 @@ Supports both public client (device code flow) and confidential client modes.
 Public client (default): No client secret needed. Uses device code flow for login
 and MSAL's built-in token cache with automatic refresh.
 
-Confidential client (legacy): Requires OUTCLAW_CLIENT_SECRET. Uses authorization
+Confidential client (legacy): Requires OFFICECLAW_CLIENT_SECRET. Uses authorization
 code flow with manual token refresh.
 """
 
@@ -24,7 +24,7 @@ from typing import Any
 from dotenv import load_dotenv
 from msal import ConfidentialClientApplication, PublicClientApplication, SerializableTokenCache
 
-from outclaw.exceptions import AuthenticationError, ConfigurationError, TokenStorageError
+from officeclaw.exceptions import AuthenticationError, ConfigurationError, TokenStorageError
 
 # Optional keyring support (legacy mode only)
 try:
@@ -36,7 +36,7 @@ except ImportError:
 
 
 # Cache file location
-CACHE_DIR = Path.home() / ".outclaw"
+CACHE_DIR = Path.home() / ".officeclaw"
 CACHE_FILE = CACHE_DIR / "token_cache.json"
 
 
@@ -62,7 +62,7 @@ def _save_msal_cache(cache: SerializableTokenCache) -> None:
 
 def _is_public_client_mode() -> bool:
     """Check whether to use public client (no secret) or confidential client."""
-    return not os.getenv("OUTCLAW_CLIENT_SECRET")
+    return not os.getenv("OFFICECLAW_CLIENT_SECRET")
 
 
 class TokenManager:
@@ -71,15 +71,15 @@ class TokenManager:
 
     Automatically selects between public client (device code flow) and
     confidential client (authorization code flow) based on whether
-    OUTCLAW_CLIENT_SECRET is set.
+    OFFICECLAW_CLIENT_SECRET is set.
 
     Public client mode (default):
         - Uses MSAL's SerializableTokenCache for persistence
         - Token refresh is handled automatically by acquire_token_silent()
-        - Login via device code flow: ``outclaw auth login``
+        - Login via device code flow: ``officeclaw auth login``
 
     Confidential client mode (legacy):
-        - Requires OUTCLAW_CLIENT_SECRET
+        - Requires OFFICECLAW_CLIENT_SECRET
         - Uses keyring or file-based token storage
         - Manual token refresh via refresh_token
 
@@ -88,8 +88,8 @@ class TokenManager:
         token = manager.get_access_token()
     """
 
-    KEYRING_SERVICE = "outclaw"
-    LEGACY_KEYRING_SERVICE = "out-claw"
+    KEYRING_SERVICE = "officeclaw"
+    LEGACY_KEYRING_SERVICE = "officeclaw"
     KEYRING_USERNAME = "microsoft-graph-tokens"
 
     DEFAULT_SCOPES = [
@@ -106,21 +106,21 @@ class TokenManager:
         load_dotenv()
 
         # Load configuration
-        self.client_id = os.getenv("OUTCLAW_CLIENT_ID")
-        self.client_secret = os.getenv("OUTCLAW_CLIENT_SECRET")
-        self.tenant_id = os.getenv("OUTCLAW_TENANT_ID", "consumers")
-        self.redirect_uri = os.getenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
+        self.client_id = os.getenv("OFFICECLAW_CLIENT_ID")
+        self.client_secret = os.getenv("OFFICECLAW_CLIENT_SECRET")
+        self.tenant_id = os.getenv("OFFICECLAW_TENANT_ID", "consumers")
+        self.redirect_uri = os.getenv("OFFICECLAW_REDIRECT_URI", "http://localhost:8000/callback")
 
-        scopes_str = os.getenv("OUTCLAW_SCOPES")
+        scopes_str = os.getenv("OFFICECLAW_SCOPES")
         self.scopes = scopes_str.split() if scopes_str else self.DEFAULT_SCOPES
 
-        self.use_keyring = os.getenv("OUTCLAW_USE_KEYRING", "true").lower() == "true"
-        self.token_refresh_threshold = int(os.getenv("OUTCLAW_TOKEN_REFRESH_THRESHOLD", "300"))
+        self.use_keyring = os.getenv("OFFICECLAW_USE_KEYRING", "true").lower() == "true"
+        self.token_refresh_threshold = int(os.getenv("OFFICECLAW_TOKEN_REFRESH_THRESHOLD", "300"))
 
         # Validate required configuration
         if not self.client_id:
             raise ConfigurationError(
-                "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
+                "OFFICECLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
             )
 
         # Determine mode
@@ -133,7 +133,7 @@ class TokenManager:
 
     def _init_public_client(self) -> None:
         """Initialize for public client (device code) mode."""
-        authority_base = os.getenv("OUTCLAW_AUTHORITY", "https://login.microsoftonline.com")
+        authority_base = os.getenv("OFFICECLAW_AUTHORITY", "https://login.microsoftonline.com")
         self.authority = f"{authority_base}/{self.tenant_id}"
 
         self._cache = _load_msal_cache()
@@ -146,15 +146,15 @@ class TokenManager:
     def _init_confidential_client(self) -> None:
         """Initialize for confidential client (legacy) mode."""
         # Token storage directory
-        cache_dir = os.getenv("OUTCLAW_TOKEN_CACHE_DIR", ".outclaw")
+        cache_dir = os.getenv("OFFICECLAW_TOKEN_CACHE_DIR", ".officeclaw")
         self.token_dir = Path.home() / cache_dir
         self.token_dir.mkdir(mode=0o700, exist_ok=True)
 
-        cache_file = os.getenv("OUTCLAW_TOKEN_CACHE_FILE", "token_cache.json")
+        cache_file = os.getenv("OFFICECLAW_TOKEN_CACHE_FILE", "token_cache.json")
         self.token_file = self.token_dir / cache_file
 
         # Build authority URL
-        authority_base = os.getenv("OUTCLAW_AUTHORITY", "https://login.microsoftonline.com")
+        authority_base = os.getenv("OFFICECLAW_AUTHORITY", "https://login.microsoftonline.com")
         self.authority = f"{authority_base}/{self.tenant_id}"
 
         # Initialize MSAL app
@@ -187,7 +187,7 @@ class TokenManager:
         accounts = self._app.get_accounts()
         if not accounts:
             raise AuthenticationError(
-                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
+                "No authentication tokens found. " "Run 'officeclaw auth login' to authenticate."
             )
 
         result = self._app.acquire_token_silent(
@@ -197,19 +197,19 @@ class TokenManager:
 
         if not result:
             raise AuthenticationError(
-                "Token refresh failed. " "Run 'outclaw auth login' to re-authenticate."
+                "Token refresh failed. " "Run 'officeclaw auth login' to re-authenticate."
             )
 
         if "error" in result:
             error_desc = result.get("error_description", result["error"])
             raise AuthenticationError(
                 f"Token refresh failed: {error_desc}. "
-                "Run 'outclaw auth login' to re-authenticate."
+                "Run 'officeclaw auth login' to re-authenticate."
             )
 
         if "access_token" not in result:
             raise AuthenticationError(
-                "No access token in response. " "Run 'outclaw auth login' to re-authenticate."
+                "No access token in response. " "Run 'officeclaw auth login' to re-authenticate."
             )
 
         # Persist cache if tokens were refreshed
@@ -223,7 +223,7 @@ class TokenManager:
 
         if not tokens:
             raise AuthenticationError(
-                "No authentication tokens found. " "Run 'outclaw auth login' to authenticate."
+                "No authentication tokens found. " "Run 'officeclaw auth login' to authenticate."
             )
 
         if self._needs_refresh(tokens):
@@ -323,7 +323,7 @@ class TokenManager:
         if self._cached_tokens and self._cache_time and time.time() - self._cache_time < 60:
             return self._cached_tokens
 
-        # Try keyring (current service name, then legacy "out-claw" fallback)
+        # Try keyring (current service name, then legacy "officeclaw" fallback)
         if self.use_keyring and KEYRING_AVAILABLE:
             for service in (self.KEYRING_SERVICE, self.LEGACY_KEYRING_SERVICE):
                 try:
@@ -382,7 +382,7 @@ class TokenManager:
         refresh_token = tokens.get("refresh_token")
         if not refresh_token:
             raise AuthenticationError(
-                "No refresh token available. " "Run 'outclaw auth login' to re-authenticate."
+                "No refresh token available. " "Run 'officeclaw auth login' to re-authenticate."
             )
 
         try:

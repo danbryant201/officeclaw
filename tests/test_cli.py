@@ -17,7 +17,7 @@ class TestCliHelp:
 
     def test_help_shows_commands(self):
         """Test that --help shows available commands."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["--help"])
@@ -30,17 +30,17 @@ class TestCliHelp:
 
     def test_version_shows_version(self):
         """Test that --version shows version number."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["--version"])
 
         assert result.exit_code == 0
-        assert "1." in result.output or "outclaw" in result.output.lower()
+        assert "1." in result.output or "officeclaw" in result.output.lower()
 
     def test_mail_help(self):
         """Test mail subcommand help."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["mail", "--help"])
@@ -52,7 +52,7 @@ class TestCliHelp:
 
     def test_calendar_help(self):
         """Test calendar subcommand help."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["calendar", "--help"])
@@ -63,7 +63,7 @@ class TestCliHelp:
 
     def test_tasks_help(self):
         """Test tasks subcommand help."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["tasks", "--help"])
@@ -76,7 +76,7 @@ class TestCliHelp:
 
     def test_auth_help(self):
         """Test auth subcommand help."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["auth", "--help"])
@@ -90,10 +90,10 @@ class TestCliHelp:
 class TestMailCommands:
     """Test mail-related CLI commands."""
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_mail_list_success(self, mock_client_class, sample_messages):
         """Test successful mail list command."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_messages
@@ -106,10 +106,10 @@ class TestMailCommands:
 
         assert result.exit_code == 0
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_mail_list_json_output(self, mock_client_class, sample_messages):
         """Test mail list outputs valid JSON."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_messages
@@ -127,7 +127,7 @@ class TestMailCommands:
 
     def test_mail_get_requires_message_id(self):
         """Test mail get requires message-id argument."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["mail", "get"])
@@ -136,7 +136,7 @@ class TestMailCommands:
 
     def test_mail_send_requires_options(self):
         """Test mail send requires all options."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["mail", "send"])
@@ -147,10 +147,10 @@ class TestMailCommands:
 class TestCalendarCommands:
     """Test calendar-related CLI commands."""
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_calendar_list_with_dates(self, mock_client_class, sample_events):
         """Test calendar list with date range."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_events
@@ -167,7 +167,7 @@ class TestCalendarCommands:
 
     def test_calendar_list_requires_dates(self):
         """Test calendar list requires start and end dates."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["calendar", "list"])
@@ -176,7 +176,7 @@ class TestCalendarCommands:
 
     def test_calendar_create_requires_options(self):
         """Test calendar create requires subject, start, end."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["calendar", "create"])
@@ -187,10 +187,10 @@ class TestCalendarCommands:
 class TestTasksCommands:
     """Test tasks-related CLI commands."""
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_tasks_list_lists(self, mock_client_class, sample_task_list):
         """Test listing task lists."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = [sample_task_list]
@@ -203,10 +203,10 @@ class TestTasksCommands:
 
         assert result.exit_code == 0
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_tasks_complete(self, mock_client_class, sample_task):
         """Test completing a task."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         completed_task = {**sample_task, "status": "completed"}
@@ -224,7 +224,7 @@ class TestTasksCommands:
 
     def test_tasks_list_requires_list_id(self):
         """Test tasks list requires list-id."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         runner = CliRunner()
         result = runner.invoke(main, ["tasks", "list"])
@@ -235,10 +235,10 @@ class TestTasksCommands:
 class TestAuthCommands:
     """Test authentication-related CLI commands."""
 
-    @patch("outclaw.cli.TokenManager")
+    @patch("officeclaw.cli.TokenManager")
     def test_auth_status_not_authenticated(self, mock_token_manager):
         """Test auth status when not authenticated."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_manager = MagicMock()
         mock_manager.get_token_info.return_value = None
@@ -249,10 +249,10 @@ class TestAuthCommands:
 
         assert "not" in result.output.lower() or "authenticated" in result.output.lower()
 
-    @patch("outclaw.cli.TokenManager")
+    @patch("officeclaw.cli.TokenManager")
     def test_auth_logout(self, mock_token_manager):
         """Test auth logout clears tokens."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_manager = MagicMock()
         mock_token_manager.return_value = mock_manager
@@ -267,10 +267,10 @@ class TestAuthCommands:
 class TestJsonOutput:
     """Test JSON output mode."""
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_json_flag_affects_output(self, mock_client_class, sample_messages):
         """Test that --json flag produces JSON output."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = sample_messages
@@ -285,10 +285,10 @@ class TestJsonOutput:
         data = json.loads(result.output)
         assert "status" in data
 
-    @patch("outclaw.cli.GraphClient")
+    @patch("officeclaw.cli.GraphClient")
     def test_json_output_structure(self, mock_client_class, sample_task_list):
         """Test JSON output has correct structure."""
-        from outclaw.cli import main
+        from officeclaw.cli import main
 
         mock_client = MagicMock()
         mock_client.get_all.return_value = [sample_task_list]

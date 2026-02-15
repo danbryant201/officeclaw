@@ -1,10 +1,10 @@
 """
-Entry point for `python -m outclaw`.
+Entry point for `python -m officeclaw`.
 """
 
 from __future__ import annotations
 
-from outclaw.cli import main
+from officeclaw.cli import main
 
 if __name__ == "__main__":
     main()

@@ -19,10 +19,10 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from outclaw import __version__
-from outclaw.auth import TokenManager
-from outclaw.client import GraphClient
-from outclaw.exceptions import AuthenticationError, GraphAPIError, OutclawError
+from officeclaw import __version__
+from officeclaw.auth import TokenManager
+from officeclaw.client import GraphClient
+from officeclaw.exceptions import AuthenticationError, GraphAPIError, OutclawError
 
 # Rich console for pretty output
 console = Console()
@@ -43,7 +43,7 @@ def handle_error(e: Exception) -> None:
     """Handle and display errors."""
     if isinstance(e, AuthenticationError):
         error_console.print(f"[red]Authentication Error:[/red] {e}")
-        error_console.print("Run [bold]outclaw auth login[/bold] to authenticate.")
+        error_console.print("Run [bold]officeclaw auth login[/bold] to authenticate.")
     elif isinstance(e, GraphAPIError):
         error_console.print(f"[red]API Error ({e.code}):[/red] {e.message}")
     elif isinstance(e, OutclawError):
@@ -59,7 +59,7 @@ def handle_error(e: Exception) -> None:
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="outclaw")
+@click.version_option(version=__version__, prog_name="officeclaw")
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.pass_context
 def main(ctx: click.Context, json_output: bool) -> None:
@@ -88,7 +88,7 @@ def login() -> None:
     """Authenticate with Microsoft (opens browser)."""
     try:
         # Import here to avoid circular imports
-        from outclaw.auth_flow import run_auth_flow
+        from officeclaw.auth_flow import run_auth_flow
 
         run_auth_flow()
     except ImportError:
@@ -124,7 +124,7 @@ def status(ctx: click.Context) -> None:
 
         if not info:
             console.print("[yellow]Not authenticated.[/yellow]")
-            console.print("Run [bold]outclaw auth login[/bold] to authenticate.")
+            console.print("Run [bold]officeclaw auth login[/bold] to authenticate.")
             return
 
         table = Table(title="Authentication Status")
@@ -298,7 +298,7 @@ def mail_send(
 def mail_reply(ctx: click.Context, message_id: str, body: str, reply_all: bool) -> None:
     """Reply to an email message."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             mc.reply(message_id, body, reply_all=reply_all)
@@ -320,7 +320,7 @@ def mail_reply(ctx: click.Context, message_id: str, body: str, reply_all: bool) 
 def mail_forward(ctx: click.Context, message_id: str, to: str, comment: str) -> None:
     """Forward an email message."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             mc.forward(message_id, to, comment=comment)
@@ -340,7 +340,7 @@ def mail_forward(ctx: click.Context, message_id: str, to: str, comment: str) -> 
 def mail_move(ctx: click.Context, message_id: str, folder: str) -> None:
     """Move a message to a folder."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             result = mc.move(message_id, folder)
@@ -359,7 +359,7 @@ def mail_move(ctx: click.Context, message_id: str, folder: str) -> None:
 def mail_delete(ctx: click.Context, message_id: str) -> None:
     """Delete an email message."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             mc.delete(message_id)
@@ -380,7 +380,7 @@ def mail_delete(ctx: click.Context, message_id: str) -> None:
 def mail_search(ctx: click.Context, query: str, folder: str | None, limit: int) -> None:
     """Search email messages."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             messages = mc.search(query, folder=folder, limit=limit)
@@ -417,7 +417,7 @@ def mail_search(ctx: click.Context, query: str, folder: str | None, limit: int) 
 def mail_mark_read(ctx: click.Context, message_id: str, unread: bool) -> None:
     """Mark a message as read (or unread with --unread)."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             result = mc.mark_read(message_id, is_read=not unread)
@@ -437,7 +437,7 @@ def mail_mark_read(ctx: click.Context, message_id: str, unread: bool) -> None:
 def mail_archive(ctx: click.Context, message_id: str) -> None:
     """Archive a message (move to Archive folder)."""
     try:
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         with MailClient() as mc:
             result = mc.archive(message_id)
@@ -514,7 +514,7 @@ def calendar_list(ctx: click.Context, start: str, end: str, limit: int) -> None:
 def calendar_get(ctx: click.Context, event_id: str) -> None:
     """Get a specific calendar event."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             event = cc.get_event(event_id)
@@ -587,7 +587,7 @@ def calendar_update(
 ) -> None:
     """Update a calendar event."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             result = cc.update_event(
@@ -613,7 +613,7 @@ def calendar_update(
 def calendar_delete(ctx: click.Context, event_id: str) -> None:
     """Delete a calendar event."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             cc.delete_event(event_id)
@@ -633,7 +633,7 @@ def calendar_delete(ctx: click.Context, event_id: str) -> None:
 def calendar_accept(ctx: click.Context, event_id: str, comment: str) -> None:
     """Accept a meeting invitation."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             cc.accept_event(event_id, comment=comment)
@@ -653,7 +653,7 @@ def calendar_accept(ctx: click.Context, event_id: str, comment: str) -> None:
 def calendar_decline(ctx: click.Context, event_id: str, comment: str) -> None:
     """Decline a meeting invitation."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             cc.decline_event(event_id, comment=comment)
@@ -671,7 +671,7 @@ def calendar_decline(ctx: click.Context, event_id: str, comment: str) -> None:
 def calendar_list_calendars(ctx: click.Context) -> None:
     """List all calendars."""
     try:
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         with CalendarClient() as cc:
             calendars = cc.list_calendars()
@@ -872,7 +872,7 @@ def tasks_reopen(ctx: click.Context, list_id: str, task_id: str) -> None:
 def tasks_get(ctx: click.Context, list_id: str, task_id: str) -> None:
     """Get a specific task."""
     try:
-        from outclaw.tasks import TasksClient
+        from officeclaw.tasks import TasksClient
 
         with TasksClient() as tc:
             task = tc.get_task(list_id, task_id)
@@ -916,7 +916,7 @@ def tasks_update(
 ) -> None:
     """Update a task."""
     try:
-        from outclaw.tasks import TasksClient
+        from officeclaw.tasks import TasksClient
 
         with TasksClient() as tc:
             result = tc.update_task(
@@ -943,7 +943,7 @@ def tasks_update(
 def tasks_delete(ctx: click.Context, list_id: str, task_id: str) -> None:
     """Delete a task."""
     try:
-        from outclaw.tasks import TasksClient
+        from officeclaw.tasks import TasksClient
 
         with TasksClient() as tc:
             tc.delete_task(list_id, task_id)

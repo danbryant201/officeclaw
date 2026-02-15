@@ -24,7 +24,7 @@ class AuthenticationError(OutclawError):
     - Token refresh returns an error
     - Credentials are invalid
 
-    Resolution: Run `outclaw auth login` to re-authenticate.
+    Resolution: Run `officeclaw auth login` to re-authenticate.
     """
 
     pass
@@ -94,7 +94,7 @@ class TokenStorageError(OutclawError):
     - File permissions prevent reading/writing tokens
     - Token file is corrupted
 
-    Resolution: Check ~/.outclaw/ directory permissions.
+    Resolution: Check ~/.officeclaw/ directory permissions.
     """
 
     pass

@@ -6,12 +6,12 @@ and Python API.
 
 Example usage:
     # CLI
-    $ outclaw mail list --limit 10
-    $ outclaw calendar list --start 2026-02-01 --end 2026-02-28
-    $ outclaw tasks list-lists
+    $ officeclaw mail list --limit 10
+    $ officeclaw calendar list --start 2026-02-01 --end 2026-02-28
+    $ officeclaw tasks list-lists
 
     # Python
-    from outclaw import MailClient, CalendarClient, TasksClient
+    from officeclaw import MailClient, CalendarClient, TasksClient
 
     mail = MailClient()
     messages = mail.list_messages(limit=10)
@@ -28,23 +28,23 @@ __email__ = "dan@theenquiringmind.com"
 def __getattr__(name: str):
     """Lazy import of client classes."""
     if name == "MailClient":
-        from outclaw.mail import MailClient
+        from officeclaw.mail import MailClient
 
         return MailClient
     elif name == "CalendarClient":
-        from outclaw.calendar import CalendarClient
+        from officeclaw.calendar import CalendarClient
 
         return CalendarClient
     elif name == "TasksClient":
-        from outclaw.tasks import TasksClient
+        from officeclaw.tasks import TasksClient
 
         return TasksClient
     elif name == "TokenManager":
-        from outclaw.auth import TokenManager
+        from officeclaw.auth import TokenManager
 
         return TokenManager
     elif name == "GraphClient":
-        from outclaw.client import GraphClient
+        from officeclaw.client import GraphClient
 
         return GraphClient
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

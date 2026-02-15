@@ -9,7 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from outclaw.client import GraphClient
+from officeclaw.client import GraphClient
 
 
 class TasksClient:

@@ -15,7 +15,7 @@ build-backend = "hatchling.build"
 # ============================================
 
 [project]
-name = "outclaw"
+name = "officeclaw"
 version = "1.0.0"
 description = "Microsoft Graph API integration for OpenClaw agents - manage email, calendar, and tasks"
 readme = "README.md"
@@ -95,25 +95,25 @@ dev = [
 # ============================================
 
 [project.scripts]
-outclaw = "outclaw.cli:main"
+officeclaw = "officeclaw.cli:main"
 
 # ============================================
 # PROJECT URLS
 # ============================================
 
 [project.urls]
-Homepage = "https://github.com/danielithomas/outclaw"
-Documentation = "https://github.com/danielithomas/outclaw#readme"
-Repository = "https://github.com/danielithomas/outclaw.git"
-Issues = "https://github.com/danielithomas/outclaw/issues"
-Changelog = "https://github.com/danielithomas/outclaw/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/danielithomas/officeclaw"
+Documentation = "https://github.com/danielithomas/officeclaw#readme"
+Repository = "https://github.com/danielithomas/officeclaw.git"
+Issues = "https://github.com/danielithomas/officeclaw/issues"
+Changelog = "https://github.com/danielithomas/officeclaw/blob/main/CHANGELOG.md"
 
 # ============================================
 # BUILD CONFIGURATION
 # ============================================
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/outclaw"]
+packages = ["src/officeclaw"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -151,7 +151,7 @@ filterwarnings = [
 
 # --- COVERAGE ---
 [tool.coverage.run]
-source = ["src/outclaw"]
+source = ["src/officeclaw"]
 branch = true
 omit = [
     "*/tests/*",
@@ -197,7 +197,7 @@ ignore = [
 "tests/*" = ["S101", "ARG"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["outclaw"]
+known-first-party = ["officeclaw"]
 
 # --- BLACK (Formatting) ---
 [tool.black]

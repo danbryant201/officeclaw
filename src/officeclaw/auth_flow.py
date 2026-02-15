@@ -20,8 +20,8 @@ from dotenv import load_dotenv
 from msal import ConfidentialClientApplication
 from rich.console import Console
 
-from outclaw.auth import CACHE_FILE, TokenManager, _is_public_client_mode, _save_msal_cache
-from outclaw.exceptions import AuthenticationError, ConfigurationError
+from officeclaw.auth import CACHE_FILE, TokenManager, _is_public_client_mode, _save_msal_cache
+from officeclaw.exceptions import AuthenticationError, ConfigurationError
 
 console = Console()
 
@@ -30,7 +30,7 @@ def run_auth_flow() -> dict[str, Any]:
     """
     Run the appropriate authentication flow based on configuration.
 
-    If OUTCLAW_CLIENT_SECRET is set, uses authorization code flow (legacy).
+    If OFFICECLAW_CLIENT_SECRET is set, uses authorization code flow (legacy).
     Otherwise, uses device code flow (default).
 
     Returns:
@@ -213,22 +213,22 @@ def run_authorization_code_flow() -> dict[str, Any]:
     load_dotenv()
 
     # Load configuration
-    client_id = os.getenv("OUTCLAW_CLIENT_ID")
-    client_secret = os.getenv("OUTCLAW_CLIENT_SECRET")
-    redirect_uri = os.getenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
-    tenant_id = os.getenv("OUTCLAW_TENANT_ID", "consumers")
-    scopes_str = os.getenv("OUTCLAW_SCOPES")
+    client_id = os.getenv("OFFICECLAW_CLIENT_ID")
+    client_secret = os.getenv("OFFICECLAW_CLIENT_SECRET")
+    redirect_uri = os.getenv("OFFICECLAW_REDIRECT_URI", "http://localhost:8000/callback")
+    tenant_id = os.getenv("OFFICECLAW_TENANT_ID", "consumers")
+    scopes_str = os.getenv("OFFICECLAW_SCOPES")
 
     scopes = scopes_str.split() if scopes_str else TokenManager.DEFAULT_SCOPES
 
     if not client_id:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
+            "OFFICECLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
         )
 
     if not client_secret:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_SECRET is required for authorization code flow. "
+            "OFFICECLAW_CLIENT_SECRET is required for authorization code flow. "
             "Remove it to use device code flow instead."
         )
 

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from outclaw.client import GraphClient
+from officeclaw.client import GraphClient
 
 
 class CalendarClient:

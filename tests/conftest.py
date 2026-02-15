@@ -98,7 +98,7 @@ def mock_token_data() -> dict[str, Any]:
 @pytest.fixture
 def mock_keyring() -> Generator[MagicMock, None, None]:
     """Mock the keyring module for secure storage tests."""
-    with patch("outclaw.auth.keyring") as mock:
+    with patch("officeclaw.auth.keyring") as mock:
         mock.get_password.return_value = None
         mock.set_password.return_value = None
         mock.delete_password.return_value = None
@@ -108,18 +108,18 @@ def mock_keyring() -> Generator[MagicMock, None, None]:
 @pytest.fixture
 def mock_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Set up mock environment variables (confidential client mode)."""
-    monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
-    monkeypatch.setenv("OUTCLAW_CLIENT_SECRET", "test-client-secret")
-    monkeypatch.setenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
-    monkeypatch.setenv("OUTCLAW_TENANT_ID", "consumers")
+    monkeypatch.setenv("OFFICECLAW_CLIENT_ID", "test-client-id")
+    monkeypatch.setenv("OFFICECLAW_CLIENT_SECRET", "test-client-secret")
+    monkeypatch.setenv("OFFICECLAW_REDIRECT_URI", "http://localhost:8000/callback")
+    monkeypatch.setenv("OFFICECLAW_TENANT_ID", "consumers")
 
 
 @pytest.fixture
 def mock_env_public(monkeypatch: pytest.MonkeyPatch) -> None:
     """Set up mock environment variables (public client / device code mode)."""
-    monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
-    monkeypatch.delenv("OUTCLAW_CLIENT_SECRET", raising=False)
-    monkeypatch.setenv("OUTCLAW_TENANT_ID", "consumers")
+    monkeypatch.setenv("OFFICECLAW_CLIENT_ID", "test-client-id")
+    monkeypatch.delenv("OFFICECLAW_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("OFFICECLAW_TENANT_ID", "consumers")
 
 
 @pytest.fixture

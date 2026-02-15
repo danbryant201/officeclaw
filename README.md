@@ -1,16 +1,16 @@
-# Outclaw
+# Officeclaw
 
 > Microsoft Graph API integration for OpenClaw agents — manage email, calendar, and tasks.
 
-[![PyPI](https://img.shields.io/pypi/v/outclaw.svg)](https://pypi.org/project/outclaw/)
-[![Python](https://img.shields.io/pypi/pyversions/outclaw.svg)](https://pypi.org/project/outclaw/)
+[![PyPI](https://img.shields.io/pypi/v/officeclaw.svg)](https://pypi.org/project/officeclaw/)
+[![Python](https://img.shields.io/pypi/pyversions/officeclaw.svg)](https://pypi.org/project/officeclaw/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 ## Overview
 
-**Outclaw** is an [OpenClaw](https://docs.openclaw.ai) skill that enables AI agents to interact with personal Microsoft accounts through the Microsoft Graph API. Agents can read/write emails, manage calendar events, and handle tasks — all through natural language commands.
+**Officeclaw** is an [OpenClaw](https://docs.openclaw.ai) skill that enables AI agents to interact with personal Microsoft accounts through the Microsoft Graph API. Agents can read/write emails, manage calendar events, and handle tasks — all through natural language commands.
 
-### What Can Outclaw Do?
+### What Can Officeclaw Do?
 
 - 📧 **Email** — Read inbox, send emails, mark read/unread, archive
 - 📅 **Calendar** — View events, create meetings, manage appointments  
@@ -21,7 +21,7 @@
 ### Installation
 
 ```bash
-pip install outclaw
+pip install officeclaw
 ```
 
 ### Setup
@@ -37,49 +37,49 @@ pip install outclaw
    cp .env.template .env
    
    # Edit with your Azure app credentials
-   OUTCLAW_CLIENT_ID=your-client-id
-   OUTCLAW_CLIENT_SECRET=your-client-secret
+   OFFICECLAW_CLIENT_ID=your-client-id
+   OFFICECLAW_CLIENT_SECRET=your-client-secret
    ```
 
 3. **Authenticate**
 
    ```bash
-   outclaw auth login
+   officeclaw auth login
    ```
 
 ### Usage
 
 ```bash
 # List recent emails
-outclaw mail list --limit 10
+officeclaw mail list --limit 10
 
 # View calendar
-outclaw calendar list --start 2026-02-01 --end 2026-02-28
+officeclaw calendar list --start 2026-02-01 --end 2026-02-28
 
 # List task lists
-outclaw tasks list-lists
+officeclaw tasks list-lists
 
 # Create a task
-outclaw tasks create --list-id <id> --title "Review report"
+officeclaw tasks create --list-id <id> --title "Review report"
 
 # JSON output (for agents)
-outclaw --json mail list
+officeclaw --json mail list
 ```
 
 ## For OpenClaw Agents
 
-Once installed, OpenClaw agents can use Outclaw through natural language:
+Once installed, OpenClaw agents can use Officeclaw through natural language:
 
 ```
 User: "Show me today's calendar"
-Agent: [Uses Outclaw]
+Agent: [Uses Officeclaw]
        You have 3 events today:
        - 9:00 AM: Team standup
        - 2:00 PM: Client call
        - 4:00 PM: Project review
 
 User: "Add 'finish report' to my tasks"
-Agent: [Uses Outclaw]
+Agent: [Uses Officeclaw]
        ✓ Task created: finish report
 ```
 
@@ -91,34 +91,34 @@ See [skill/SKILL.md](skill/SKILL.md) for the full skill manifest.
 
 | Command | Description |
 |---------|-------------|
-| `outclaw auth login` | Authenticate with Microsoft |
-| `outclaw auth logout` | Clear stored tokens |
-| `outclaw auth status` | Show authentication status |
+| `officeclaw auth login` | Authenticate with Microsoft |
+| `officeclaw auth logout` | Clear stored tokens |
+| `officeclaw auth status` | Show authentication status |
 
 ### Email
 
 | Command | Description |
 |---------|-------------|
-| `outclaw mail list` | List messages |
-| `outclaw mail get <id>` | Get message details |
-| `outclaw mail send --to <email> --subject <subj> --body <body>` | Send email |
+| `officeclaw mail list` | List messages |
+| `officeclaw mail get <id>` | Get message details |
+| `officeclaw mail send --to <email> --subject <subj> --body <body>` | Send email |
 
 ### Calendar
 
 | Command | Description |
 |---------|-------------|
-| `outclaw calendar list --start <date> --end <date>` | List events |
-| `outclaw calendar create --subject <subj> --start <dt> --end <dt>` | Create event |
+| `officeclaw calendar list --start <date> --end <date>` | List events |
+| `officeclaw calendar create --subject <subj> --start <dt> --end <dt>` | Create event |
 
 ### Tasks
 
 | Command | Description |
 |---------|-------------|
-| `outclaw tasks list-lists` | List task lists |
-| `outclaw tasks list --list-id <id>` | List tasks |
-| `outclaw tasks create --list-id <id> --title <title>` | Create task |
-| `outclaw tasks complete --list-id <id> --task-id <id>` | Complete task |
-| `outclaw tasks reopen --list-id <id> --task-id <id>` | Reopen task |
+| `officeclaw tasks list-lists` | List task lists |
+| `officeclaw tasks list --list-id <id>` | List tasks |
+| `officeclaw tasks create --list-id <id> --title <title>` | Create task |
+| `officeclaw tasks complete --list-id <id> --task-id <id>` | Complete task |
+| `officeclaw tasks reopen --list-id <id> --task-id <id>` | Reopen task |
 
 ## Configuration
 
@@ -126,15 +126,15 @@ Environment variables (or `.env` file):
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OUTCLAW_CLIENT_ID` | Yes | Azure app client ID |
-| `OUTCLAW_CLIENT_SECRET` | Yes | Azure app client secret |
-| `OUTCLAW_REDIRECT_URI` | No | Redirect URI (default: `http://localhost:8000/callback`) |
-| `OUTCLAW_TENANT_ID` | No | Tenant ID (default: `consumers`) |
+| `OFFICECLAW_CLIENT_ID` | Yes | Azure app client ID |
+| `OFFICECLAW_CLIENT_SECRET` | Yes | Azure app client secret |
+| `OFFICECLAW_REDIRECT_URI` | No | Redirect URI (default: `http://localhost:8000/callback`) |
+| `OFFICECLAW_TENANT_ID` | No | Tenant ID (default: `consumers`) |
 
 ## Security
 
 - **Tokens stored securely** — System keyring (macOS Keychain, Windows Credential Manager) or encrypted file
-- **No data storage** — Outclaw passes data through, never stores emails/events
+- **No data storage** — Officeclaw passes data through, never stores emails/events
 - **No telemetry** — No usage data collected
 
 See [SECURITY.md](SECURITY.md) for full security documentation.
@@ -143,8 +143,8 @@ See [SECURITY.md](SECURITY.md) for full security documentation.
 
 ```bash
 # Clone and install
-git clone https://github.com/danielithomas/outclaw.git
-cd outclaw
+git clone https://github.com/danielithomas/officeclaw.git
+cd officeclaw
 pip install -e ".[dev]"
 
 # Run tests
