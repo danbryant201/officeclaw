@@ -4,6 +4,8 @@ Tests for the Outclaw CLI.
 Tests command parsing, output formatting, and error handling.
 """
 
+from __future__ import annotations
+
 import json
 from unittest.mock import MagicMock, patch
 

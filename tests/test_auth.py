@@ -2,6 +2,8 @@
 Tests for the Outclaw auth module.
 """
 
+from __future__ import annotations
+
 import json
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch

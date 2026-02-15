@@ -2,6 +2,8 @@
 Tests for the Outclaw tasks module.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 

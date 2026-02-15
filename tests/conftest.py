@@ -7,6 +7,8 @@ This module provides:
 - Sample data generators
 """
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from datetime import datetime, timezone
 from typing import Any

@@ -2,6 +2,8 @@
 Tests for the Outclaw mail module.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 
