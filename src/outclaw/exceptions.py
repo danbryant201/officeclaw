@@ -5,6 +5,8 @@ Custom exception classes for handling Microsoft Graph API errors
 and authentication failures.
 """
 
+from __future__ import annotations
+
 
 class OutclawError(Exception):
     """Base exception for Outclaw errors."""

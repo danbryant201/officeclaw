@@ -7,21 +7,24 @@ This module provides:
 - Sample data generators
 """
 
-import json
+from __future__ import annotations
+
+from collections.abc import Generator
 from datetime import datetime, timezone
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
 
-
 # ============================================
 # SAMPLE DATA
 # ============================================
 
-SAMPLE_ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."  # Truncated for safety
-SAMPLE_REFRESH_TOKEN = "0.ARwA..."  # Truncated for safety
+SAMPLE_ACCESS_TOKEN = (
+    "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsIng1dCI6Ik..."  # noqa: S105  # Truncated for safety
+)
+SAMPLE_REFRESH_TOKEN = "0.ARwA..."  # noqa: S105  # Truncated for safety
 
 SAMPLE_USER = {
     "id": "user-123",
@@ -34,20 +37,8 @@ SAMPLE_MESSAGE = {
     "id": "AAMkADEzN...",
     "subject": "Test Email Subject",
     "bodyPreview": "This is the body preview...",
-    "from": {
-        "emailAddress": {
-            "name": "Sender Name",
-            "address": "sender@example.com"
-        }
-    },
-    "toRecipients": [
-        {
-            "emailAddress": {
-                "name": "Test User",
-                "address": "test@outlook.com"
-            }
-        }
-    ],
+    "from": {"emailAddress": {"name": "Sender Name", "address": "sender@example.com"}},
+    "toRecipients": [{"emailAddress": {"name": "Test User", "address": "test@outlook.com"}}],
     "receivedDateTime": "2026-02-12T10:30:00Z",
     "isRead": False,
     "importance": "normal",
@@ -58,23 +49,10 @@ SAMPLE_EVENT = {
     "id": "AAMkADE...",
     "subject": "Team Meeting",
     "bodyPreview": "Weekly sync",
-    "start": {
-        "dateTime": "2026-02-12T14:00:00.0000000",
-        "timeZone": "UTC"
-    },
-    "end": {
-        "dateTime": "2026-02-12T15:00:00.0000000",
-        "timeZone": "UTC"
-    },
-    "location": {
-        "displayName": "Conference Room A"
-    },
-    "organizer": {
-        "emailAddress": {
-            "name": "Test User",
-            "address": "test@outlook.com"
-        }
-    },
+    "start": {"dateTime": "2026-02-12T14:00:00.0000000", "timeZone": "UTC"},
+    "end": {"dateTime": "2026-02-12T15:00:00.0000000", "timeZone": "UTC"},
+    "location": {"displayName": "Conference Room A"},
+    "organizer": {"emailAddress": {"name": "Test User", "address": "test@outlook.com"}},
     "isAllDay": False,
     "isCancelled": False,
 }
@@ -92,14 +70,8 @@ SAMPLE_TASK = {
     "title": "Complete report",
     "status": "notStarted",
     "importance": "normal",
-    "body": {
-        "content": "Finish the quarterly report",
-        "contentType": "text"
-    },
-    "dueDateTime": {
-        "dateTime": "2026-02-15T00:00:00.0000000",
-        "timeZone": "UTC"
-    },
+    "body": {"content": "Finish the quarterly report", "contentType": "text"},
+    "dueDateTime": {"dateTime": "2026-02-15T00:00:00.0000000", "timeZone": "UTC"},
     "createdDateTime": "2026-02-10T08:00:00Z",
     "lastModifiedDateTime": "2026-02-12T10:00:00Z",
 }
@@ -108,6 +80,7 @@ SAMPLE_TASK = {
 # ============================================
 # FIXTURES
 # ============================================
+
 
 @pytest.fixture
 def mock_token_data() -> dict[str, Any]:
@@ -134,7 +107,7 @@ def mock_keyring() -> Generator[MagicMock, None, None]:
 
 @pytest.fixture
 def mock_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Set up mock environment variables."""
+    """Set up mock environment variables (confidential client mode)."""
     monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
     monkeypatch.setenv("OUTCLAW_CLIENT_SECRET", "test-client-secret")
     monkeypatch.setenv("OUTCLAW_REDIRECT_URI", "http://localhost:8000/callback")
@@ -142,10 +115,18 @@ def mock_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
+def mock_env_public(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set up mock environment variables (public client / device code mode)."""
+    monkeypatch.setenv("OUTCLAW_CLIENT_ID", "test-client-id")
+    monkeypatch.delenv("OUTCLAW_CLIENT_SECRET", raising=False)
+    monkeypatch.setenv("OUTCLAW_TENANT_ID", "consumers")
+
+
+@pytest.fixture
 def mock_graph_api() -> Generator[responses.RequestsMock, None, None]:
     """
     Mock Microsoft Graph API responses.
-    
+
     Usage:
         def test_something(mock_graph_api):
             mock_graph_api.add(
@@ -223,14 +204,15 @@ def sample_tasks() -> list[dict[str, Any]]:
 # HELPERS
 # ============================================
 
+
 def make_graph_response(data: Any, next_link: str | None = None) -> dict[str, Any]:
     """
     Create a paginated Graph API response.
-    
+
     Args:
         data: The value array data
         next_link: Optional @odata.nextLink for pagination
-    
+
     Returns:
         Dict matching Graph API response format
     """
@@ -243,11 +225,11 @@ def make_graph_response(data: Any, next_link: str | None = None) -> dict[str, An
 def make_error_response(code: str, message: str) -> dict[str, Any]:
     """
     Create a Graph API error response.
-    
+
     Args:
         code: Error code (e.g., "InvalidAuthenticationToken")
         message: Error message
-    
+
     Returns:
         Dict matching Graph API error format
     """
@@ -258,6 +240,6 @@ def make_error_response(code: str, message: str) -> dict[str, Any]:
             "innerError": {
                 "date": datetime.now(timezone.utc).isoformat(),
                 "request-id": "test-request-id",
-            }
+            },
         }
     }

@@ -2,9 +2,9 @@
 Tests for the Outclaw tasks module.
 """
 
-from unittest.mock import MagicMock, patch
+from __future__ import annotations
 
-import pytest
+from unittest.mock import MagicMock, patch
 
 
 class TestTasksClient:
@@ -53,7 +53,7 @@ class TestTasksClient:
         mock_client_class.return_value = mock_client
 
         client = TasksClient()
-        tasks = client.list_tasks("list-123", status="active")
+        client.list_tasks("list-123", status="active")
 
         call_args = mock_client.get_all.call_args
         params = call_args[1]["params"]
@@ -70,7 +70,7 @@ class TestTasksClient:
         mock_client_class.return_value = mock_client
 
         client = TasksClient()
-        tasks = client.list_tasks("list-123", status="completed")
+        client.list_tasks("list-123", status="completed")
 
         call_args = mock_client.get_all.call_args
         params = call_args[1]["params"]
@@ -225,7 +225,7 @@ class TestTasksClient:
         mock_client_class.return_value = mock_client
 
         client = TasksClient()
-        result = client.create_task_list("My New List")
+        client.create_task_list("My New List")
 
         mock_client.post.assert_called_with(
             "/me/todo/lists",

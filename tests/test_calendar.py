@@ -2,9 +2,9 @@
 Tests for the Outclaw calendar module.
 """
 
-from unittest.mock import MagicMock, patch
+from __future__ import annotations
 
-import pytest
+from unittest.mock import MagicMock, patch
 
 
 class TestCalendarClient:
@@ -37,7 +37,7 @@ class TestCalendarClient:
         mock_client_class.return_value = mock_client
 
         client = CalendarClient()
-        events = client.list_events("2026-02-01", "2026-02-28", limit=10)
+        client.list_events("2026-02-01", "2026-02-28", limit=10)
 
         call_args = mock_client.get_all.call_args
         params = call_args[1]["params"]
@@ -195,7 +195,7 @@ class TestCalendarClient:
         from outclaw.calendar import CalendarClient
 
         client = CalendarClient.__new__(CalendarClient)
-        
+
         result = client._normalize_datetime("2026-02-15")
         assert result == "2026-02-15T00:00:00"
 
@@ -207,7 +207,7 @@ class TestCalendarClient:
         from outclaw.calendar import CalendarClient
 
         client = CalendarClient.__new__(CalendarClient)
-        
+
         result = client._normalize_datetime("2026-02-15T10:30:00")
         assert result == "2026-02-15T10:30:00"
 

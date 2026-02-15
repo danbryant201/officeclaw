@@ -2,12 +2,9 @@
 Tests for the Outclaw mail module.
 """
 
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
-
-import pytest
-import responses
-
-from tests.conftest import SAMPLE_MESSAGE, make_graph_response
 
 
 class TestMailClient:

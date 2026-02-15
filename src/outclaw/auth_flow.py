@@ -1,7 +1,9 @@
 """
 Authentication flow for Outclaw.
 
-Handles OAuth 2.0 Authorization Code Flow with browser-based login.
+Supports two modes:
+- Device code flow (default): For public client apps without a client secret.
+- Authorization code flow (legacy): For confidential client apps with a client secret.
 """
 
 from __future__ import annotations
@@ -18,10 +20,103 @@ from dotenv import load_dotenv
 from msal import ConfidentialClientApplication
 from rich.console import Console
 
-from outclaw.auth import TokenManager
+from outclaw.auth import CACHE_FILE, TokenManager, _is_public_client_mode, _save_msal_cache
 from outclaw.exceptions import AuthenticationError, ConfigurationError
 
 console = Console()
+
+
+def run_auth_flow() -> dict[str, Any]:
+    """
+    Run the appropriate authentication flow based on configuration.
+
+    If OUTCLAW_CLIENT_SECRET is set, uses authorization code flow (legacy).
+    Otherwise, uses device code flow (default).
+
+    Returns:
+        Token dictionary
+
+    Raises:
+        AuthenticationError: If authentication fails
+        ConfigurationError: If configuration is invalid
+    """
+    load_dotenv()
+
+    if _is_public_client_mode():
+        return run_device_code_flow()
+    return run_authorization_code_flow()
+
+
+def run_device_code_flow() -> dict[str, Any]:
+    """
+    Run the OAuth 2.0 Device Code Flow.
+
+    Displays a URL and code for the user to enter in a browser.
+    Polls until authentication completes or times out.
+
+    Returns:
+        Token dictionary
+
+    Raises:
+        AuthenticationError: If authentication fails
+        ConfigurationError: If configuration is invalid
+    """
+    manager = TokenManager()
+    app = manager.get_msal_app()
+    cache = manager.get_msal_cache()
+
+    console.print("\n[bold]Outclaw Authentication (Device Code Flow)[/bold]\n")
+
+    # Initiate device code flow
+    flow = app.initiate_device_flow(scopes=manager.scopes)
+
+    if "user_code" not in flow:
+        error = flow.get("error_description", flow.get("error", "Unknown error"))
+        raise AuthenticationError(
+            f"Failed to initiate device code flow: {error}\n"
+            "Make sure 'Allow public client flows' is enabled in your "
+            "Azure app registration (Authentication > Advanced settings)."
+        )
+
+    # Display instructions
+    console.print(flow["message"])
+    console.print()
+
+    # Poll for completion
+    console.print("[dim]Waiting for authentication...[/dim]")
+
+    result = app.acquire_token_by_device_flow(flow)
+
+    if "error" in result:
+        error = result.get("error", "unknown_error")
+        error_desc = result.get("error_description", "Authentication failed")
+
+        if error == "authorization_pending":
+            raise AuthenticationError("Authentication timed out. Please try again.")
+        elif error == "authorization_declined":
+            raise AuthenticationError("Authentication was declined by the user.")
+        elif error == "expired_token":
+            raise AuthenticationError("The device code expired. Please try again.")
+        else:
+            raise AuthenticationError(f"Authentication failed: {error_desc}")
+
+    if "access_token" not in result:
+        raise AuthenticationError("No access token in response.")
+
+    # Save the MSAL token cache
+    _save_msal_cache(cache)
+
+    account = result.get("id_token_claims", {}).get("preferred_username", "Unknown")
+    console.print("\n[green]✓[/green] [bold]Authentication successful![/bold]")
+    console.print(f"[dim]Signed in as: {account}[/dim]")
+    console.print(f"[dim]Token cache: {CACHE_FILE}[/dim]\n")
+
+    return result
+
+
+# ===========================================================================
+# Legacy: Authorization Code Flow (confidential client)
+# ===========================================================================
 
 
 class AuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
@@ -101,9 +196,9 @@ class AuthCallbackHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-def run_auth_flow() -> dict[str, Any]:
+def run_authorization_code_flow() -> dict[str, Any]:
     """
-    Run the OAuth 2.0 Authorization Code Flow.
+    Run the OAuth 2.0 Authorization Code Flow (legacy).
 
     Opens browser for user authentication, handles callback,
     and stores tokens securely.
@@ -133,7 +228,8 @@ def run_auth_flow() -> dict[str, Any]:
 
     if not client_secret:
         raise ConfigurationError(
-            "OUTCLAW_CLIENT_SECRET is required. " "Set it in .env or as an environment variable."
+            "OUTCLAW_CLIENT_SECRET is required for authorization code flow. "
+            "Remove it to use device code flow instead."
         )
 
     # Parse redirect URI to get port
@@ -156,7 +252,7 @@ def run_auth_flow() -> dict[str, Any]:
         redirect_uri=redirect_uri,
     )
 
-    console.print("\n[bold]Outclaw Authentication[/bold]\n")
+    console.print("\n[bold]Outclaw Authentication (Authorization Code Flow)[/bold]\n")
     console.print("Opening browser for Microsoft login...")
     console.print("[dim]If browser doesn't open, visit:[/dim]")
     console.print(f"[link]{auth_url}[/link]\n")
