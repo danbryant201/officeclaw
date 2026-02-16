@@ -32,6 +32,8 @@ pip install officeclaw
 
 ### Setup (One-Time)
 
+> **Note:** This setup is only required if you're configuring OfficeClaw for the first time with your own Microsoft account. If you're using OfficeClaw as part of an existing OpenClaw workspace where credentials are already configured, skip to [Usage](#usage).
+
 #### 1. Create an Azure App Registration
 
 1. Go to [entra.microsoft.com](https://entra.microsoft.com) → App registrations → New registration
