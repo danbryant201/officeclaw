@@ -213,18 +213,13 @@ def run_authorization_code_flow() -> dict[str, Any]:
     load_dotenv()
 
     # Load configuration
-    client_id = os.getenv("OFFICECLAW_CLIENT_ID")
+    client_id = os.getenv("OFFICECLAW_CLIENT_ID") or TokenManager.DEFAULT_CLIENT_ID
     client_secret = os.getenv("OFFICECLAW_CLIENT_SECRET")
     redirect_uri = os.getenv("OFFICECLAW_REDIRECT_URI", "http://localhost:8000/callback")
     tenant_id = os.getenv("OFFICECLAW_TENANT_ID", "consumers")
     scopes_str = os.getenv("OFFICECLAW_SCOPES")
 
     scopes = scopes_str.split() if scopes_str else TokenManager.DEFAULT_SCOPES
-
-    if not client_id:
-        raise ConfigurationError(
-            "OFFICECLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
-        )
 
     if not client_secret:
         raise ConfigurationError(

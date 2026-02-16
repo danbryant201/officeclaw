@@ -7,15 +7,12 @@ user-invocable: true
 compatibility: Requires Python 3.9+, network access to graph.microsoft.com, and one-time OAuth setup
 metadata:
   author: Daniel Thomas
-  version: "1.0.0"
-  openclaw: {"requires": {"anyBins": ["python", "python3", "officeclaw"]}, "os": ["darwin", "linux", "win32"]}
-  env:
-    - name: OFFICECLAW_CLIENT_ID
-      required: true
-      description: "Azure App Registration client ID. Create one at https://entra.microsoft.com"
-    - name: OFFICECLAW_CLIENT_SECRET
-      required: false
-      description: "Optional. Only needed for confidential client (auth code) flow. Not required for device code flow (default)."
+  version: "1.0.1"
+  openclaw:
+    requires:
+      anyBins: ["python", "python3", "officeclaw"]
+      env: []
+    os: ["darwin", "linux", "win32"]
 ---
 
 # OfficeClaw: Microsoft Graph API Integration
@@ -44,6 +41,10 @@ officeclaw --version
 
 ## Setup (One-Time)
 
+> **Quick start:** OfficeClaw ships with a default app registration — just run `officeclaw auth login` and go. No Azure setup needed.
+>
+> **Advanced:** Want full control? Create your own Azure App Registration (free, ~5 minutes) and set `OFFICECLAW_CLIENT_ID` in your `.env`. See [Microsoft's guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) or follow the steps below.
+
 ### 1. Create an Azure App Registration
 
 1. Go to [entra.microsoft.com](https://entra.microsoft.com) → App registrations → New registration
@@ -53,10 +54,19 @@ officeclaw --version
 5. Click **Register**
 6. Copy the **Application (client) ID** — this is your `OFFICECLAW_CLIENT_ID`
 7. Go to **Authentication** → Advanced settings → **Allow public client flows** → **Yes** → Save
-8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated:
-   - `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
-   - `Calendars.Read`, `Calendars.ReadWrite`
-   - `Tasks.ReadWrite`
+8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated permissions. Choose based on your needs:
+
+**Read-only (safest):**
+- `Mail.Read`, `Calendars.Read`, `Tasks.ReadWrite`*
+
+**Full access (all features including send/delete):**
+- `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
+- `Calendars.Read`, `Calendars.ReadWrite`
+- `Tasks.ReadWrite`
+
+*\*Tasks.ReadWrite is the minimum available scope for Microsoft To Do — there is no read-only option.*
+
+> **Least privilege:** Only grant the permissions you actually need. If you only want to read emails and calendar, skip `Mail.ReadWrite`, `Mail.Send`, and `Calendars.ReadWrite`. OfficeClaw will gracefully error on commands that require missing permissions.
 
 ### 2. Configure Environment
 
@@ -64,9 +74,13 @@ Create a `.env` file in your skill directory:
 
 ```bash
 OFFICECLAW_CLIENT_ID=your-client-id-here
+
+# Capability gates (disabled by default for safety)
+# OFFICECLAW_ENABLE_SEND=true    # Allow sending/replying/forwarding emails
+# OFFICECLAW_ENABLE_DELETE=true   # Allow deleting emails, events, and tasks
 ```
 
-That's it — no client secret needed for device code flow.
+No client secret needed for device code flow. Write operations (send, delete) are **disabled by default** — enable only what you need.
 
 ### 3. Authenticate
 
@@ -193,11 +207,13 @@ When using this skill:
 
 ## Security & Privacy
 
+- **Write operations disabled by default**: Send, reply, forward, and delete are all blocked unless explicitly enabled via `OFFICECLAW_ENABLE_SEND` and `OFFICECLAW_ENABLE_DELETE` environment variables. This prevents accidental or unauthorised write actions.
 - **No client secret required**: Uses device code flow (public client) by default
-- **Tokens stored securely**: Encrypted file at `~/.officeclaw/token_cache.json` (600 permissions)
+- **Least-privilege permissions**: You choose which Graph API scopes to grant — read-only is sufficient for most use cases. See the setup guide above.
+- **Tokens stored securely**: `~/.officeclaw/token_cache.json` with 600 file permissions
 - **No data storage**: OfficeClaw passes data through, never stores email/calendar content
 - **No telemetry**: No usage data collected
-- **Least privilege**: Only requests necessary Graph API permissions
+- **Your own Azure app**: Each user creates their own Azure app registration with their own client ID — no shared credentials
 
 ## Troubleshooting
 
