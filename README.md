@@ -41,10 +41,19 @@ pip install officeclaw
 5. Click **Register**
 6. Copy the **Application (client) ID** — this is your `OFFICECLAW_CLIENT_ID`
 7. Go to **Authentication** → Advanced settings → **Allow public client flows** → **Yes** → Save
-8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated:
+8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated permissions. Choose based on your needs:
+
+   **Read-only (safest):**
+   - `Mail.Read`, `Calendars.Read`, `Tasks.ReadWrite`*
+
+   **Full access (all features including send/delete):**
    - `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
    - `Calendars.Read`, `Calendars.ReadWrite`
    - `Tasks.ReadWrite`
+
+   *\*Tasks.ReadWrite is the minimum available scope for Microsoft To Do — there is no read-only option.*
+
+   > **Least privilege:** Only grant the permissions you actually need. If you only want to read emails and calendar, skip `Mail.ReadWrite`, `Mail.Send`, and `Calendars.ReadWrite`. OfficeClaw will gracefully error on commands that require missing permissions.
 
 #### 2. Configure Environment
 
