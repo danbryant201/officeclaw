@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from officeclaw.exceptions import AuthenticationError, ConfigurationError
+from officeclaw.exceptions import AuthenticationError
 
 
 class TestTokenManagerPublicClient:
@@ -33,15 +33,17 @@ class TestTokenManagerPublicClient:
         mock_app.assert_called_once()
 
     @patch("officeclaw.auth.load_dotenv")
+    @patch("officeclaw.auth.PublicClientApplication")
+    @patch("officeclaw.auth._load_msal_cache")
     @patch.dict("os.environ", {}, clear=True)
-    def test_init_missing_client_id(self, mock_dotenv):
-        """Test initialization fails without client ID."""
+    def test_init_uses_default_client_id_when_not_set(self, mock_cache, mock_pca, mock_dotenv):
+        """Test initialization uses default client ID when env var is not set."""
         from officeclaw.auth import TokenManager
 
-        with pytest.raises(ConfigurationError) as exc_info:
-            TokenManager()
-
-        assert "OFFICECLAW_CLIENT_ID" in str(exc_info.value)
+        mock_cache.return_value = None
+        mock_pca.return_value = MagicMock()
+        tm = TokenManager()
+        assert tm.client_id == TokenManager.DEFAULT_CLIENT_ID
 
     @patch("officeclaw.auth.load_dotenv")
     @patch("officeclaw.auth.PublicClientApplication")

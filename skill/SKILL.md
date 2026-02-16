@@ -11,8 +11,7 @@ metadata:
   openclaw:
     requires:
       anyBins: ["python", "python3", "officeclaw"]
-      env:
-        - OFFICECLAW_CLIENT_ID
+      env: []
     os: ["darwin", "linux", "win32"]
 ---
 
@@ -42,7 +41,9 @@ officeclaw --version
 
 ## Setup (One-Time)
 
-> **You'll need your own Azure App Registration** to use OfficeClaw. This is free and takes about 5 minutes. Each user controls their own app and permissions — no shared credentials. Follow the steps below, or see [Microsoft's guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app).
+> **Quick start:** OfficeClaw ships with a default app registration — just run `officeclaw auth login` and go. No Azure setup needed.
+>
+> **Advanced:** Want full control? Create your own Azure App Registration (free, ~5 minutes) and set `OFFICECLAW_CLIENT_ID` in your `.env`. See [Microsoft's guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app) or follow the steps below.
 
 ### 1. Create an Azure App Registration
 

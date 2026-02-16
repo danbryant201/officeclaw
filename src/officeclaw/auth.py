@@ -92,6 +92,10 @@ class TokenManager:
     LEGACY_KEYRING_SERVICE = "officeclaw"
     KEYRING_USERNAME = "microsoft-graph-tokens"
 
+    # Default public client ID — registered by OfficeClaw project.
+    # Users can override with OFFICECLAW_CLIENT_ID in .env.
+    DEFAULT_CLIENT_ID = "1db8c9bb-eebf-4eb9-82dc-e3ec91d1ca53"
+
     DEFAULT_SCOPES = [
         "Mail.Read",
         "Mail.ReadWrite",
@@ -106,7 +110,7 @@ class TokenManager:
         load_dotenv()
 
         # Load configuration
-        self.client_id = os.getenv("OFFICECLAW_CLIENT_ID")
+        self.client_id = os.getenv("OFFICECLAW_CLIENT_ID") or self.DEFAULT_CLIENT_ID
         self.client_secret = os.getenv("OFFICECLAW_CLIENT_SECRET")
         self.tenant_id = os.getenv("OFFICECLAW_TENANT_ID", "consumers")
         self.redirect_uri = os.getenv("OFFICECLAW_REDIRECT_URI", "http://localhost:8000/callback")
@@ -116,12 +120,6 @@ class TokenManager:
 
         self.use_keyring = os.getenv("OFFICECLAW_USE_KEYRING", "true").lower() == "true"
         self.token_refresh_threshold = int(os.getenv("OFFICECLAW_TOKEN_REFRESH_THRESHOLD", "300"))
-
-        # Validate required configuration
-        if not self.client_id:
-            raise ConfigurationError(
-                "OFFICECLAW_CLIENT_ID is required. " "Set it in .env or as an environment variable."
-            )
 
         # Determine mode
         self.public_client_mode = _is_public_client_mode()
