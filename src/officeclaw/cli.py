@@ -12,6 +12,7 @@ Usage:
 from __future__ import annotations
 
 import json
+import os
 import sys
 from typing import Any
 
@@ -27,6 +28,31 @@ from officeclaw.exceptions import AuthenticationError, GraphAPIError, OutclawErr
 # Rich console for pretty output
 console = Console()
 error_console = Console(stderr=True)
+
+
+# ============================================
+# CAPABILITY GATES
+# ============================================
+# Write operations (send, delete, forward) are disabled by default.
+# Enable them explicitly via environment variables.
+
+
+def _is_enabled(env_var: str) -> bool:
+    """Check if a capability is enabled via env var."""
+    return os.environ.get(env_var, "").lower() in ("true", "1", "yes")
+
+
+def require_capability(env_var: str, action: str) -> None:
+    """Raise an error if a capability is not enabled.
+
+    Args:
+        env_var: Environment variable that enables this capability.
+        action: Human-readable description of the action (e.g., "send emails").
+    """
+    if not _is_enabled(env_var):
+        error_console.print(f"[red]Blocked:[/red] {action} is disabled by default for safety.")
+        error_console.print(f"To enable, set [bold]{env_var}=true[/bold] in your .env file.")
+        sys.exit(1)
 
 
 def output_json(data: Any, status: str = "success") -> None:
@@ -245,7 +271,11 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
 def mail_send(
     ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]
 ) -> None:
-    """Send an email message."""
+    """Send an email message.
+
+    Requires OFFICECLAW_ENABLE_SEND=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_SEND", "Sending emails")
     import base64
     import mimetypes
     from pathlib import Path
@@ -296,7 +326,11 @@ def mail_send(
 @click.option("--reply-all", is_flag=True, help="Reply to all recipients")
 @click.pass_context
 def mail_reply(ctx: click.Context, message_id: str, body: str, reply_all: bool) -> None:
-    """Reply to an email message."""
+    """Reply to an email message.
+
+    Requires OFFICECLAW_ENABLE_SEND=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_SEND", "Sending emails")
     try:
         from officeclaw.mail import MailClient
 
@@ -318,7 +352,11 @@ def mail_reply(ctx: click.Context, message_id: str, body: str, reply_all: bool) 
 @click.option("--comment", default="", help="Optional comment")
 @click.pass_context
 def mail_forward(ctx: click.Context, message_id: str, to: str, comment: str) -> None:
-    """Forward an email message."""
+    """Forward an email message.
+
+    Requires OFFICECLAW_ENABLE_SEND=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_SEND", "Sending emails")
     try:
         from officeclaw.mail import MailClient
 
@@ -357,7 +395,11 @@ def mail_move(ctx: click.Context, message_id: str, folder: str) -> None:
 @click.argument("message_id")
 @click.pass_context
 def mail_delete(ctx: click.Context, message_id: str) -> None:
-    """Delete an email message."""
+    """Delete an email message.
+
+    Requires OFFICECLAW_ENABLE_DELETE=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_DELETE", "Deleting emails")
     try:
         from officeclaw.mail import MailClient
 
@@ -611,7 +653,11 @@ def calendar_update(
 @click.argument("event_id")
 @click.pass_context
 def calendar_delete(ctx: click.Context, event_id: str) -> None:
-    """Delete a calendar event."""
+    """Delete a calendar event.
+
+    Requires OFFICECLAW_ENABLE_DELETE=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_DELETE", "Deleting calendar events")
     try:
         from officeclaw.calendar import CalendarClient
 
@@ -941,7 +987,11 @@ def tasks_update(
 @click.option("--task-id", required=True, help="Task ID")
 @click.pass_context
 def tasks_delete(ctx: click.Context, list_id: str, task_id: str) -> None:
-    """Delete a task."""
+    """Delete a task.
+
+    Requires OFFICECLAW_ENABLE_DELETE=true in .env (disabled by default for safety).
+    """
+    require_capability("OFFICECLAW_ENABLE_DELETE", "Deleting tasks")
     try:
         from officeclaw.tasks import TasksClient
 

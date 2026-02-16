@@ -19,7 +19,7 @@ Example usage:
 
 from __future__ import annotations
 
-__version__ = "1.0.0"
+__version__ = "1.0.2"
 __author__ = "Daniel Thomas"
 __email__ = "dan@theenquiringmind.com"
 

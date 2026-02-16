@@ -71,9 +71,13 @@ Create a `.env` file in your skill directory:
 
 ```bash
 OFFICECLAW_CLIENT_ID=your-client-id-here
+
+# Capability gates (disabled by default for safety)
+# OFFICECLAW_ENABLE_SEND=true    # Allow sending/replying/forwarding emails
+# OFFICECLAW_ENABLE_DELETE=true   # Allow deleting emails, events, and tasks
 ```
 
-That's it — no client secret needed for device code flow.
+No client secret needed for device code flow. Write operations (send, delete) are **disabled by default** — enable only what you need.
 
 ### 3. Authenticate
 

@@ -303,3 +303,84 @@ class TestJsonOutput:
         assert data["status"] == "success"
         assert "data" in data
         assert isinstance(data["data"], list)
+
+
+class TestCapabilityGates:
+    """Test that write operations are gated by env vars."""
+
+    def test_mail_send_blocked_by_default(self):
+        """mail send should fail when OFFICECLAW_ENABLE_SEND is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(
+                main, ["mail", "send", "--to", "x@x.com", "--subject", "t", "--body", "b"]
+            )
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_SEND" in result.output
+
+    def test_mail_send_allowed_when_enabled(self):
+        """mail send should proceed when OFFICECLAW_ENABLE_SEND=true."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {"OFFICECLAW_ENABLE_SEND": "true"}):
+            with patch("officeclaw.cli.GraphClient") as mock_gc:
+                mock_client = MagicMock()
+                mock_gc.return_value.__enter__ = MagicMock(return_value=mock_client)
+                mock_gc.return_value.__exit__ = MagicMock(return_value=False)
+                result = runner.invoke(
+                    main, ["mail", "send", "--to", "x@x.com", "--subject", "t", "--body", "b"]
+                )
+                assert result.exit_code == 0
+
+    def test_mail_delete_blocked_by_default(self):
+        """mail delete should fail when OFFICECLAW_ENABLE_DELETE is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(main, ["mail", "delete", "msg-123"])
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_DELETE" in result.output
+
+    def test_mail_reply_blocked_by_default(self):
+        """mail reply should fail when OFFICECLAW_ENABLE_SEND is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(main, ["mail", "reply", "msg-123", "--body", "thanks"])
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_SEND" in result.output
+
+    def test_mail_forward_blocked_by_default(self):
+        """mail forward should fail when OFFICECLAW_ENABLE_SEND is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(main, ["mail", "forward", "msg-123", "--to", "x@x.com"])
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_SEND" in result.output
+
+    def test_calendar_delete_blocked_by_default(self):
+        """calendar delete should fail when OFFICECLAW_ENABLE_DELETE is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(main, ["calendar", "delete", "evt-123"])
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_DELETE" in result.output
+
+    def test_tasks_delete_blocked_by_default(self):
+        """tasks delete should fail when OFFICECLAW_ENABLE_DELETE is not set."""
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(main, ["tasks", "delete", "--list-id", "l1", "--task-id", "t1"])
+            assert result.exit_code != 0
+            assert "OFFICECLAW_ENABLE_DELETE" in result.output

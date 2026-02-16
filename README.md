@@ -61,9 +61,13 @@ Create a `.env` file:
 
 ```bash
 OFFICECLAW_CLIENT_ID=your-client-id-here
+
+# Capability gates (disabled by default for safety)
+# OFFICECLAW_ENABLE_SEND=true    # Allow sending/replying/forwarding emails
+# OFFICECLAW_ENABLE_DELETE=true   # Allow deleting emails, events, and tasks
 ```
 
-That's it — no client secret needed for device code flow.
+No client secret needed for device code flow. Write operations (send, delete) are **disabled by default** — enable only what you need.
 
 #### 3. Authenticate
 
@@ -182,6 +186,8 @@ Environment variables (or `.env` file):
 | `OFFICECLAW_TENANT_ID` | No | Tenant ID (default: `consumers`) |
 | `OFFICECLAW_SCOPES` | No | Override default Graph API scopes |
 | `OFFICECLAW_TOKEN_CACHE_DIR` | No | Token cache directory (default: `~/.officeclaw`) |
+| `OFFICECLAW_ENABLE_SEND` | No | Set `true` to allow send/reply/forward emails (default: disabled) |
+| `OFFICECLAW_ENABLE_DELETE` | No | Set `true` to allow deleting emails, events, tasks (default: disabled) |
 
 ## Security & Privacy
 
