@@ -37,8 +37,17 @@ error_console = Console(stderr=True)
 # Enable them explicitly via environment variables.
 
 
+_dotenv_loaded = False
+
+
 def _is_enabled(env_var: str) -> bool:
-    """Check if a capability is enabled via env var."""
+    """Check if a capability is enabled via env var or .env file."""
+    global _dotenv_loaded  # noqa: PLW0603
+    if not _dotenv_loaded:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        _dotenv_loaded = True
     return os.environ.get(env_var, "").lower() in ("true", "1", "yes")
 
 
