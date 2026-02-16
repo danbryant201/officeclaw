@@ -325,15 +325,17 @@ class TestCapabilityGates:
         from officeclaw.cli import main
 
         runner = CliRunner()
-        with patch.dict("os.environ", {"OFFICECLAW_ENABLE_SEND": "true"}):
-            with patch("officeclaw.cli.GraphClient") as mock_gc:
-                mock_client = MagicMock()
-                mock_gc.return_value.__enter__ = MagicMock(return_value=mock_client)
-                mock_gc.return_value.__exit__ = MagicMock(return_value=False)
-                result = runner.invoke(
-                    main, ["mail", "send", "--to", "x@x.com", "--subject", "t", "--body", "b"]
-                )
-                assert result.exit_code == 0
+        with (
+            patch.dict("os.environ", {"OFFICECLAW_ENABLE_SEND": "true"}),
+            patch("officeclaw.cli.GraphClient") as mock_gc,
+        ):
+            mock_client = MagicMock()
+            mock_gc.return_value.__enter__ = MagicMock(return_value=mock_client)
+            mock_gc.return_value.__exit__ = MagicMock(return_value=False)
+            result = runner.invoke(
+                main, ["mail", "send", "--to", "x@x.com", "--subject", "t", "--body", "b"]
+            )
+            assert result.exit_code == 0
 
     def test_mail_delete_blocked_by_default(self):
         """mail delete should fail when OFFICECLAW_ENABLE_DELETE is not set."""
