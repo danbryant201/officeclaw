@@ -191,11 +191,13 @@ Environment variables (or `.env` file):
 
 ## Security & Privacy
 
+- **Write operations disabled by default** — Send, reply, forward, and delete are all blocked unless explicitly enabled via `OFFICECLAW_ENABLE_SEND` and `OFFICECLAW_ENABLE_DELETE` environment variables. This prevents accidental or unauthorised write actions.
 - **No client secret required** — Uses device code flow (public client) by default
-- **Tokens stored securely** — `~/.officeclaw/token_cache.json` with 600 permissions
+- **Least-privilege permissions** — You choose which Graph API scopes to grant — read-only is sufficient for most use cases. See the setup guide above.
+- **Tokens stored securely** — `~/.officeclaw/token_cache.json` with 600 file permissions
 - **No data storage** — OfficeClaw passes data through, never stores email/calendar content
 - **No telemetry** — No usage data collected
-- **Least privilege** — Only requests necessary Graph API permissions
+- **Your own Azure app** — Each user creates their own Azure app registration with their own client ID — no shared credentials
 
 ## Development
 
