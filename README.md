@@ -8,19 +8,19 @@
   <em>Microsoft Graph API integration for OpenClaw agents — manage email, calendar, and tasks.</em>
 </p>
 
-[![PyPI](https://img.shields.io/pypi/v/officeclaw.svg)](https://pypi.org/project/officeclaw/)
-[![Python](https://img.shields.io/pypi/pyversions/officeclaw.svg)](https://pypi.org/project/officeclaw/)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+<p align="center">
+  <a href="https://pypi.org/project/officeclaw/"><img src="https://img.shields.io/pypi/v/officeclaw.svg" alt="PyPI"></a>
+  <a href="https://pypi.org/project/officeclaw/"><img src="https://img.shields.io/pypi/pyversions/officeclaw.svg" alt="Python"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License"></a>
+</p>
 
 ## Overview
 
-**Officeclaw** is an [OpenClaw](https://docs.openclaw.ai) skill that enables AI agents to interact with personal Microsoft accounts through the Microsoft Graph API. Agents can read/write emails, manage calendar events, and handle tasks — all through natural language commands.
+**OfficeClaw** is an [OpenClaw](https://docs.openclaw.ai) skill that enables AI agents to interact with personal Microsoft accounts through the Microsoft Graph API. Agents can read/write emails, manage calendar events, and handle tasks — all through natural language commands.
 
-### What Can Officeclaw Do?
-
-- 📧 **Email** — Read inbox, send emails, mark read/unread, archive
-- 📅 **Calendar** — View events, create meetings, manage appointments  
-- ✅ **Tasks** — Manage Microsoft To Do lists, create/complete tasks
+- 📧 **Email** — Read inbox, send emails with attachments, search, mark read/unread, archive
+- 📅 **Calendar** — View events, create meetings, update, accept/decline
+- ✅ **Tasks** — Manage Microsoft To Do lists, create/complete/reopen tasks
 
 ## Quick Start
 
@@ -30,28 +30,39 @@
 pip install officeclaw
 ```
 
-### Setup
+### Setup (One-Time)
 
-1. **Create Azure App Registration** (one-time setup)
-   
-   See [docs/setup.md](docs/setup.md) for detailed instructions.
+#### 1. Create an Azure App Registration
 
-2. **Configure credentials**
+1. Go to [entra.microsoft.com](https://entra.microsoft.com) → App registrations → New registration
+2. Name: `officeclaw` (or anything you like)
+3. Supported account types: **Personal Microsoft accounts only**
+4. Redirect URI: leave blank (not needed for device code flow)
+5. Click **Register**
+6. Copy the **Application (client) ID** — this is your `OFFICECLAW_CLIENT_ID`
+7. Go to **Authentication** → Advanced settings → **Allow public client flows** → **Yes** → Save
+8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated:
+   - `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
+   - `Calendars.Read`, `Calendars.ReadWrite`
+   - `Tasks.ReadWrite`
 
-   ```bash
-   # Create .env file
-   cp .env.template .env
-   
-   # Edit with your Azure app credentials
-   OFFICECLAW_CLIENT_ID=your-client-id
-   OFFICECLAW_CLIENT_SECRET=your-client-secret
-   ```
+#### 2. Configure Environment
 
-3. **Authenticate**
+Create a `.env` file:
 
-   ```bash
-   officeclaw auth login
-   ```
+```bash
+OFFICECLAW_CLIENT_ID=your-client-id-here
+```
+
+That's it — no client secret needed for device code flow.
+
+#### 3. Authenticate
+
+```bash
+officeclaw auth login
+```
+
+This displays a URL and code. Open the URL in a browser, enter the code, and sign in with your Microsoft account. Tokens are stored securely in `~/.officeclaw/token_cache.json` (permissions 600).
 
 ### Usage
 
@@ -59,14 +70,23 @@ pip install officeclaw
 # List recent emails
 officeclaw mail list --limit 10
 
+# Send an email with attachment
+officeclaw mail send --to user@example.com --subject "Report" --body "See attached" --attachment report.pdf
+
+# Search emails
+officeclaw mail search --query "from:boss@example.com"
+
 # View calendar
 officeclaw calendar list --start 2026-02-01 --end 2026-02-28
+
+# Create a calendar event
+officeclaw calendar create --subject "Team Meeting" --start "2026-02-15T10:00:00" --end "2026-02-15T11:00:00" --location "Conference Room"
 
 # List task lists
 officeclaw tasks list-lists
 
 # Create a task
-officeclaw tasks create --list-id <id> --title "Review report"
+officeclaw tasks create --list-id <id> --title "Review report" --due-date "2026-02-20"
 
 # JSON output (for agents)
 officeclaw --json mail list
@@ -74,19 +94,26 @@ officeclaw --json mail list
 
 ## For OpenClaw Agents
 
-Once installed, OpenClaw agents can use Officeclaw through natural language:
+Install as a skill:
+
+```bash
+clawhub install officeclaw
+```
+
+Once installed, OpenClaw agents can use OfficeClaw through natural language:
 
 ```
 User: "Show me today's calendar"
-Agent: [Uses Officeclaw]
-       You have 3 events today:
-       - 9:00 AM: Team standup
-       - 2:00 PM: Client call
-       - 4:00 PM: Project review
+Agent: You have 3 events today:
+       • 9:00 AM — Team standup
+       • 2:00 PM — Client call
+       • 4:00 PM — Project review
 
-User: "Add 'finish report' to my tasks"
-Agent: [Uses Officeclaw]
-       ✓ Task created: finish report
+User: "Send an email to john@example.com about tomorrow's meeting"
+Agent: Email sent to john@example.com ✓
+
+User: "Mark 'finish report' as done"
+Agent: Task completed ✓
 ```
 
 See [skill/SKILL.md](skill/SKILL.md) for the full skill manifest.
@@ -97,24 +124,32 @@ See [skill/SKILL.md](skill/SKILL.md) for the full skill manifest.
 
 | Command | Description |
 |---------|-------------|
-| `officeclaw auth login` | Authenticate with Microsoft |
-| `officeclaw auth logout` | Clear stored tokens |
+| `officeclaw auth login` | Authenticate via device code flow |
 | `officeclaw auth status` | Show authentication status |
+| `officeclaw auth logout` | Clear stored tokens |
 
 ### Email
 
 | Command | Description |
 |---------|-------------|
 | `officeclaw mail list` | List messages |
+| `officeclaw mail list --unread` | List unread messages only |
 | `officeclaw mail get <id>` | Get message details |
 | `officeclaw mail send --to <email> --subject <subj> --body <body>` | Send email |
+| `officeclaw mail send ... --attachment <file>` | Send email with attachment |
+| `officeclaw mail search --query <query>` | Search emails |
+| `officeclaw mail archive <id>` | Archive a message |
+| `officeclaw mail mark-read <id>` | Mark as read |
 
 ### Calendar
 
 | Command | Description |
 |---------|-------------|
 | `officeclaw calendar list --start <date> --end <date>` | List events |
+| `officeclaw calendar get <id>` | Get event details |
 | `officeclaw calendar create --subject <subj> --start <dt> --end <dt>` | Create event |
+| `officeclaw calendar update <id> --subject <subj>` | Update event |
+| `officeclaw calendar delete <id>` | Delete event |
 
 ### Tasks
 
@@ -122,6 +157,7 @@ See [skill/SKILL.md](skill/SKILL.md) for the full skill manifest.
 |---------|-------------|
 | `officeclaw tasks list-lists` | List task lists |
 | `officeclaw tasks list --list-id <id>` | List tasks |
+| `officeclaw tasks list --list-id <id> --status active` | Active tasks only |
 | `officeclaw tasks create --list-id <id> --title <title>` | Create task |
 | `officeclaw tasks complete --list-id <id> --task-id <id>` | Complete task |
 | `officeclaw tasks reopen --list-id <id> --task-id <id>` | Reopen task |
@@ -133,17 +169,18 @@ Environment variables (or `.env` file):
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `OFFICECLAW_CLIENT_ID` | Yes | Azure app client ID |
-| `OFFICECLAW_CLIENT_SECRET` | Yes | Azure app client secret |
-| `OFFICECLAW_REDIRECT_URI` | No | Redirect URI (default: `http://localhost:8000/callback`) |
+| `OFFICECLAW_CLIENT_SECRET` | No | Only for confidential client (auth code) flow. Not needed for device code flow. |
 | `OFFICECLAW_TENANT_ID` | No | Tenant ID (default: `consumers`) |
+| `OFFICECLAW_SCOPES` | No | Override default Graph API scopes |
+| `OFFICECLAW_TOKEN_CACHE_DIR` | No | Token cache directory (default: `~/.officeclaw`) |
 
-## Security
+## Security & Privacy
 
-- **Tokens stored securely** — System keyring (macOS Keychain, Windows Credential Manager) or encrypted file
-- **No data storage** — Officeclaw passes data through, never stores emails/events
+- **No client secret required** — Uses device code flow (public client) by default
+- **Tokens stored securely** — `~/.officeclaw/token_cache.json` with 600 permissions
+- **No data storage** — OfficeClaw passes data through, never stores email/calendar content
 - **No telemetry** — No usage data collected
-
-See [SECURITY.md](SECURITY.md) for full security documentation.
+- **Least privilege** — Only requests necessary Graph API permissions
 
 ## Development
 
@@ -156,7 +193,7 @@ pip install -e ".[dev]"
 # Run tests
 pytest
 
-# Lint
+# Lint & format
 ruff check src/ tests/
 black --check src/ tests/
 ```
@@ -167,6 +204,7 @@ Apache License 2.0 — see [LICENSE](LICENSE)
 
 ## Links
 
-- [Documentation](docs/)
+- [PyPI](https://pypi.org/project/officeclaw/)
+- [ClawHub](https://clawhub.ai/skills/officeclaw)
 - [OpenClaw](https://docs.openclaw.ai)
 - [Microsoft Graph API](https://docs.microsoft.com/graph/)
