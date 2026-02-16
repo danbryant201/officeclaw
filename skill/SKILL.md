@@ -9,11 +9,72 @@ metadata:
   author: Daniel Thomas
   version: "1.0.0"
   openclaw: {"requires": {"anyBins": ["python", "python3", "officeclaw"]}, "os": ["darwin", "linux", "win32"]}
+  env:
+    - name: OFFICECLAW_CLIENT_ID
+      required: true
+      description: "Azure App Registration client ID. Create one at https://entra.microsoft.com"
+    - name: OFFICECLAW_CLIENT_SECRET
+      required: false
+      description: "Optional. Only needed for confidential client (auth code) flow. Not required for device code flow (default)."
 ---
 
-# Outclaw: Microsoft Graph API Integration
+# OfficeClaw: Microsoft Graph API Integration
 
 Connect your OpenClaw agent to personal Microsoft accounts (Outlook.com, Hotmail, Live) to manage email, calendar, and tasks through the Microsoft Graph API.
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install officeclaw
+```
+
+Or with uv:
+
+```bash
+uv pip install officeclaw
+```
+
+Verify installation:
+
+```bash
+officeclaw --version
+```
+
+## Setup (One-Time)
+
+### 1. Create an Azure App Registration
+
+1. Go to [entra.microsoft.com](https://entra.microsoft.com) → App registrations → New registration
+2. Name: `officeclaw` (or anything you like)
+3. Supported account types: **Personal Microsoft accounts only**
+4. Redirect URI: leave blank (not needed for device code flow)
+5. Click **Register**
+6. Copy the **Application (client) ID** — this is your `OFFICECLAW_CLIENT_ID`
+7. Go to **Authentication** → Advanced settings → **Allow public client flows** → **Yes** → Save
+8. Go to **API permissions** → Add permission → Microsoft Graph → Delegated:
+   - `Mail.Read`, `Mail.ReadWrite`, `Mail.Send`
+   - `Calendars.Read`, `Calendars.ReadWrite`
+   - `Tasks.ReadWrite`
+
+### 2. Configure Environment
+
+Create a `.env` file in your skill directory:
+
+```bash
+OFFICECLAW_CLIENT_ID=your-client-id-here
+```
+
+That's it — no client secret needed for device code flow.
+
+### 3. Authenticate
+
+```bash
+officeclaw auth login
+```
+
+This displays a URL and code. Open the URL in a browser, enter the code, and sign in with your Microsoft account. Tokens are stored securely in `~/.officeclaw/token_cache.json` (permissions 600).
 
 ## When to Use This Skill
 
@@ -34,84 +95,53 @@ Activate this skill when the user needs to:
 - **Create tasks**: "Add 'buy groceries' to my tasks", "Create a task to review report"
 - **Complete tasks**: "Mark 'finish proposal' as done", "Complete all shopping tasks"
 
-## Prerequisites
-
-Before using this skill, the user must complete one-time setup:
-
-1. **Azure App Registration** - Register an app at https://entra.microsoft.com
-2. **OAuth Consent** - Run `officeclaw auth login` and approve permissions
-3. **Environment Configuration** - Set CLIENT_ID and CLIENT_SECRET in .env
-
 ## Available Commands
 
 ### Authentication
 
 ```bash
-# Authenticate (opens browser)
-officeclaw auth login
-
-# Check authentication status
-officeclaw auth status
-
-# Clear stored tokens
-officeclaw auth logout
+officeclaw auth login       # Authenticate via device code flow
+officeclaw auth status      # Check authentication status
+officeclaw auth logout      # Clear stored tokens
 ```
 
 ### Mail Commands
 
 ```bash
-# List recent messages
-officeclaw mail list --limit 10
-
-# List unread messages only
-officeclaw mail list --unread
-
-# Get specific message
-officeclaw mail get <message-id>
-
-# Send email
+officeclaw mail list --limit 10                # List recent messages
+officeclaw mail list --unread                   # List unread messages only
+officeclaw mail get <message-id>               # Get specific message
 officeclaw mail send --to user@example.com --subject "Hello" --body "Message text"
-
-# JSON output (for parsing)
-officeclaw --json mail list
+officeclaw mail send --to user@example.com --subject "Report" --body "Attached" --attachment report.pdf
+officeclaw mail search --query "from:boss@example.com"
+officeclaw mail archive <message-id>           # Archive a message
+officeclaw mail mark-read <message-id>         # Mark as read
+officeclaw --json mail list                    # JSON output for parsing
 ```
 
 ### Calendar Commands
 
 ```bash
-# List events in date range
 officeclaw calendar list --start 2026-02-01 --end 2026-02-28
-
-# Create event
 officeclaw calendar create \
   --subject "Team Meeting" \
   --start "2026-02-15T10:00:00" \
   --end "2026-02-15T11:00:00" \
   --location "Conference Room"
-
-# JSON output
+officeclaw calendar get <event-id>
+officeclaw calendar update <event-id> --subject "Updated Meeting"
+officeclaw calendar delete <event-id>
 officeclaw --json calendar list --start 2026-02-01 --end 2026-02-28
 ```
 
 ### Task Commands
 
 ```bash
-# List task lists
-officeclaw tasks list-lists
-
-# List tasks in a list
-officeclaw tasks list --list-id <list-id>
-
-# List only active (not completed) tasks
-officeclaw tasks list --list-id <list-id> --status active
-
-# Create task
+officeclaw tasks list-lists                              # List task lists
+officeclaw tasks list --list-id <list-id>                # List tasks
+officeclaw tasks list --list-id <list-id> --status active  # Active tasks only
 officeclaw tasks create --list-id <list-id> --title "Complete report" --due-date "2026-02-20"
-
-# Mark task complete
 officeclaw tasks complete --list-id <list-id> --task-id <task-id>
-
-# Reopen a completed task
 officeclaw tasks reopen --list-id <list-id> --task-id <task-id>
 ```
 
@@ -161,45 +191,13 @@ When using this skill:
 5. **Use JSON mode**: For programmatic parsing, use `--json` flag
 6. **Batch operations**: Process multiple items efficiently
 
-## Example Agent Interactions
-
-### Example 1: Check for urgent emails
-
-```
-User: "Do I have any urgent emails?"
-Agent: I'll check your inbox.
-[Runs: officeclaw --json mail list --limit 20]
-Agent: You have 2 unread emails:
-       • From your manager about tomorrow's deadline
-       • From IT about a password reset
-```
-
-### Example 2: Schedule a meeting
-
-```
-User: "Schedule a meeting with john@example.com tomorrow at 2pm for 1 hour"
-Agent: I'll create that calendar event.
-[Runs: officeclaw calendar create --subject "Meeting with John" 
-       --start "2026-02-13T14:00:00" --end "2026-02-13T15:00:00"]
-Agent: Meeting scheduled for tomorrow at 2:00 PM.
-```
-
-### Example 3: Complete a task
-
-```
-User: "Mark the 'finish slides' task as complete"
-Agent: I'll mark that task as done.
-[Runs: officeclaw --json tasks list --list-id <id>]
-[Runs: officeclaw tasks complete --list-id <id> --task-id <id>]
-Agent: Done! "Finish slides" has been marked as complete.
-```
-
 ## Security & Privacy
 
-- **Tokens stored securely**: System keyring or encrypted file
-- **No data storage**: Outclaw passes data through, never stores content
+- **No client secret required**: Uses device code flow (public client) by default
+- **Tokens stored securely**: Encrypted file at `~/.officeclaw/token_cache.json` (600 permissions)
+- **No data storage**: OfficeClaw passes data through, never stores email/calendar content
 - **No telemetry**: No usage data collected
-- **Least privilege**: Only requests necessary permissions
+- **Least privilege**: Only requests necessary Graph API permissions
 
 ## Troubleshooting
 
@@ -208,10 +206,11 @@ If the skill isn't working:
 1. **Check authentication**: Run `officeclaw auth status`
 2. **Re-authenticate**: Run `officeclaw auth login`
 3. **Verify network**: Ensure `graph.microsoft.com` is reachable
-4. **Check environment**: Verify OUTCLAW_CLIENT_ID is set
+4. **Check environment**: Verify `OFFICECLAW_CLIENT_ID` is set in `.env`
 
 ## References
 
-- [Outclaw Documentation](https://github.com/danielithomas/officeclaw)
+- [OfficeClaw on GitHub](https://github.com/danielithomas/officeclaw)
+- [OfficeClaw on PyPI](https://pypi.org/project/officeclaw/)
 - [Microsoft Graph API](https://docs.microsoft.com/graph/)
 - [OpenClaw](https://docs.openclaw.ai)
