@@ -42,7 +42,7 @@ officeclaw --version
 
 ## Setup (One-Time)
 
-> **Note:** This setup is only required if you're configuring OfficeClaw for the first time with your own Microsoft account. If your OpenClaw workspace already has credentials configured, skip to the commands section below.
+> **You'll need your own Azure App Registration** to use OfficeClaw. This is free and takes about 5 minutes. Each user controls their own app and permissions — no shared credentials. Follow the steps below, or see [Microsoft's guide](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app).
 
 ### 1. Create an Azure App Registration
 
