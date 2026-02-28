@@ -275,10 +275,11 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
 @click.option("--to", required=True, help="Recipient email address")
 @click.option("--subject", required=True, help="Email subject")
 @click.option("--body", required=True, help="Email body")
+@click.option("--html", is_flag=True, default=False, help="Send body as HTML instead of plain text")
 @click.option("--attachment", multiple=True, help="File path to attach (repeatable)")
 @click.pass_context
 def mail_send(
-    ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]
+    ctx: click.Context, to: str, subject: str, body: str, html: bool, attachment: tuple[str, ...]
 ) -> None:
     """Send an email message.
 
@@ -311,7 +312,7 @@ def mail_send(
             message: dict[str, Any] = {
                 "message": {
                     "subject": subject,
-                    "body": {"contentType": "Text", "content": body},
+                    "body": {"contentType": "HTML" if html else "Text", "content": body},
                     "toRecipients": [{"emailAddress": {"address": to}}],
                 },
                 "saveToSentItems": True,
