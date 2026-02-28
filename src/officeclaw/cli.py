@@ -37,8 +37,17 @@ error_console = Console(stderr=True)
 # Enable them explicitly via environment variables.
 
 
+_dotenv_loaded = False
+
+
 def _is_enabled(env_var: str) -> bool:
-    """Check if a capability is enabled via env var."""
+    """Check if a capability is enabled via env var or .env file."""
+    global _dotenv_loaded  # noqa: PLW0603
+    if not _dotenv_loaded:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        _dotenv_loaded = True
     return os.environ.get(env_var, "").lower() in ("true", "1", "yes")
 
 
@@ -266,10 +275,11 @@ def mail_get(ctx: click.Context, message_id: str) -> None:
 @click.option("--to", required=True, help="Recipient email address")
 @click.option("--subject", required=True, help="Email subject")
 @click.option("--body", required=True, help="Email body")
+@click.option("--html", is_flag=True, default=False, help="Send body as HTML instead of plain text")
 @click.option("--attachment", multiple=True, help="File path to attach (repeatable)")
 @click.pass_context
 def mail_send(
-    ctx: click.Context, to: str, subject: str, body: str, attachment: tuple[str, ...]
+    ctx: click.Context, to: str, subject: str, body: str, html: bool, attachment: tuple[str, ...]
 ) -> None:
     """Send an email message.
 
@@ -302,7 +312,7 @@ def mail_send(
             message: dict[str, Any] = {
                 "message": {
                     "subject": subject,
-                    "body": {"contentType": "Text", "content": body},
+                    "body": {"contentType": "HTML" if html else "Text", "content": body},
                     "toRecipients": [{"emailAddress": {"address": to}}],
                 },
                 "saveToSentItems": True,

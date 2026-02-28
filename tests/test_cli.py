@@ -308,6 +308,12 @@ class TestJsonOutput:
 class TestCapabilityGates:
     """Test that write operations are gated by env vars."""
 
+    def setup_method(self):
+        """Reset dotenv loaded flag before each test."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True  # Prevent load_dotenv from loading .env
+
     def test_mail_send_blocked_by_default(self):
         """mail send should fail when OFFICECLAW_ENABLE_SEND is not set."""
         from officeclaw.cli import main
