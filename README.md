@@ -192,10 +192,28 @@ Environment variables (or `.env` file):
 | `OFFICECLAW_TOKEN_CACHE_DIR` | No | Token cache directory (default: `~/.officeclaw`) |
 | `OFFICECLAW_ENABLE_SEND` | No | Set `true` to allow send/reply/forward emails (default: disabled) |
 | `OFFICECLAW_ENABLE_DELETE` | No | Set `true` to allow deleting emails, events, tasks (default: disabled) |
+| `OFFICECLAW_ALLOWED_RECIPIENTS` | No | Comma-separated list of allowed recipient email addresses. When set, outbound emails are restricted to these addresses only. Blocked attempts are logged. See [Recipient Allowlist](#recipient-allowlist) below. |
 
 ## Security & Privacy
 
 - **Write operations disabled by default** — Send, reply, forward, and delete are all blocked unless explicitly enabled via `OFFICECLAW_ENABLE_SEND` and `OFFICECLAW_ENABLE_DELETE` environment variables. This prevents accidental or unauthorised write actions.
+
+### Recipient Allowlist
+
+When `OFFICECLAW_ENABLE_SEND` is enabled, you can restrict which email addresses OfficeClaw is permitted to send to by setting `OFFICECLAW_ALLOWED_RECIPIENTS`:
+
+```bash
+# .env
+OFFICECLAW_ENABLE_SEND=true
+OFFICECLAW_ALLOWED_RECIPIENTS=alice@example.com,bob@example.com,team@company.com
+```
+
+**Behaviour:**
+- If `OFFICECLAW_ALLOWED_RECIPIENTS` is **set** — only listed addresses can receive email. Any attempt to send to an unlisted address is blocked, logged to `~/.openclaw/workspace/automation/logs/email-blocked.log`, and an alert file is written for monitoring.
+- If `OFFICECLAW_ALLOWED_RECIPIENTS` is **not set** — a warning is displayed on each send reminding you to configure the allowlist. All addresses are permitted.
+- The allowlist is checked **after** the `OFFICECLAW_ENABLE_SEND` gate — users who haven't enabled sending are unaffected.
+
+This is especially important for AI agent workflows where an LLM controls email sending — the allowlist provides a hard, code-level boundary that cannot be bypassed by prompt injection or misconfiguration.
 - **No client secret required** — Uses device code flow (public client) by default
 - **Least-privilege permissions** — You choose which Graph API scopes to grant — read-only is sufficient for most use cases. See the setup guide above.
 - **Tokens stored securely** — `~/.officeclaw/token_cache.json` with 600 file permissions
