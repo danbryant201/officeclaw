@@ -299,7 +299,9 @@ def mail_send(
             "[yellow]   Example: OFFICECLAW_ALLOWED_RECIPIENTS=alice@example.com,bob@example.com[/yellow]"
         )
     if allowed_recipients_env:
-        allowed = {addr.strip().lower() for addr in allowed_recipients_env.split(",") if addr.strip()}
+        allowed = {
+            addr.strip().lower() for addr in allowed_recipients_env.split(",") if addr.strip()
+        }
         if to.strip().lower() not in allowed:
             from datetime import datetime, timezone
 
