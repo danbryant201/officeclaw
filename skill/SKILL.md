@@ -7,7 +7,7 @@ user-invocable: true
 compatibility: Requires Python 3.9+, network access to graph.microsoft.com, and one-time OAuth setup
 metadata:
   author: Daniel Thomas
-  version: "1.0.1"
+  version: "1.0.4"
   openclaw:
     requires:
       anyBins: ["python", "python3", "officeclaw"]
@@ -78,9 +78,14 @@ OFFICECLAW_CLIENT_ID=your-client-id-here
 # Capability gates (disabled by default for safety)
 # OFFICECLAW_ENABLE_SEND=true    # Allow sending/replying/forwarding emails
 # OFFICECLAW_ENABLE_DELETE=true   # Allow deleting emails, events, and tasks
+
+# Recipient allowlist — STRONGLY RECOMMENDED when sending is enabled
+# OFFICECLAW_ALLOWED_RECIPIENTS=user1@example.com,user2@example.com
 ```
 
 No client secret needed for device code flow. Write operations (send, delete) are **disabled by default** — enable only what you need.
+
+> ⚠️ **Recipient Allowlist (v1.0.4+):** If you enable sending, configure `OFFICECLAW_ALLOWED_RECIPIENTS` to restrict which addresses can receive email. This is especially critical for AI agent workflows — the allowlist provides a hard, code-level boundary that prevents sending to unauthorized addresses regardless of what the agent is instructed to do. Blocked attempts are logged for auditing.
 
 ### 3. Authenticate
 
@@ -208,6 +213,7 @@ When using this skill:
 ## Security & Privacy
 
 - **Write operations disabled by default**: Send, reply, forward, and delete are all blocked unless explicitly enabled via `OFFICECLAW_ENABLE_SEND` and `OFFICECLAW_ENABLE_DELETE` environment variables. This prevents accidental or unauthorised write actions.
+- **Recipient allowlist (v1.0.4+)**: When `OFFICECLAW_ALLOWED_RECIPIENTS` is set, outbound email is restricted to listed addresses only. Blocked attempts are logged to `email-blocked.log` and an `email-alert.json` alert file is written for monitoring. If not set, a runtime warning is displayed on each send. **Strongly recommended for any AI agent deployment.**
 - **No client secret required**: Uses device code flow (public client) by default
 - **Least-privilege permissions**: You choose which Graph API scopes to grant — read-only is sufficient for most use cases. See the setup guide above.
 - **Tokens stored securely**: `~/.officeclaw/token_cache.json` with 600 file permissions

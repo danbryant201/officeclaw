@@ -290,6 +290,50 @@ def mail_send(
     import mimetypes
     from pathlib import Path
 
+    # Recipient allowlist enforcement
+    allowed_recipients_env = os.environ.get("OFFICECLAW_ALLOWED_RECIPIENTS", "")
+    if not allowed_recipients_env:
+        error_console.print(
+            "[yellow]⚠️  No recipient allowlist configured. All addresses are permitted.[/yellow]\n"
+            "[yellow]   Set OFFICECLAW_ALLOWED_RECIPIENTS in .env to restrict outbound email.[/yellow]\n"
+            "[yellow]   Example: OFFICECLAW_ALLOWED_RECIPIENTS=alice@example.com,bob@example.com[/yellow]"
+        )
+    if allowed_recipients_env:
+        allowed = {addr.strip().lower() for addr in allowed_recipients_env.split(",") if addr.strip()}
+        if to.strip().lower() not in allowed:
+            from datetime import datetime, timezone
+
+            block_msg = (
+                f"Blocked: {to} is not in the allowed recipients list.\n"
+                f"Subject: {subject}\n"
+                f"Allowed: {', '.join(sorted(allowed))}"
+            )
+            error_console.print(f"[red]{block_msg}[/red]")
+
+            # Log the blocked attempt
+            log_dir = Path.home() / ".openclaw" / "workspace" / "automation" / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_file = log_dir / "email-blocked.log"
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            with open(log_file, "a") as f:
+                f.write(f"[{ts}] BLOCKED | to={to} | subject={subject}\n")
+
+            # Alert: write a machine-readable alert file for external monitoring
+            alert_file = log_dir / "email-alert.json"
+            import json as _json
+
+            alert = {
+                "type": "email_blocked",
+                "timestamp": ts,
+                "to": to,
+                "subject": subject,
+                "allowed_recipients": sorted(allowed),
+            }
+            with open(alert_file, "w") as f:
+                _json.dump(alert, f, indent=2)
+
+            sys.exit(1)
+
     try:
         attachments = []
         for file_path in attachment:
