@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
 
 import click
@@ -85,6 +86,66 @@ def handle_error(e: Exception) -> None:
         error_console.print(f"[red]Error:[/red] {e}")
     else:
         error_console.print(f"[red]Unexpected Error:[/red] {e}")
+    sys.exit(1)
+
+
+def _enforce_recipient_allowlist(
+    addresses: list[str],
+    context: str,
+    log_name: str,
+    **alert_fields: Any,
+) -> None:
+    """Check addresses against OFFICECLAW_ALLOWED_RECIPIENTS; exit 1 if any are blocked.
+
+    Does nothing when addresses is empty.
+    Warns if addresses are provided but no allowlist is configured.
+    """
+    if not addresses:
+        return
+
+    from datetime import datetime, timezone
+    import json as _json
+
+    allowed_env = os.environ.get("OFFICECLAW_ALLOWED_RECIPIENTS", "")
+    if not allowed_env:
+        error_console.print(
+            "[yellow]⚠️  No recipient allowlist configured. All addresses are permitted.[/yellow]\n"
+            f"[yellow]   Set OFFICECLAW_ALLOWED_RECIPIENTS in .env to restrict {context}.[/yellow]\n"
+            "[yellow]   Example: OFFICECLAW_ALLOWED_RECIPIENTS=alice@example.com,bob@example.com[/yellow]"
+        )
+        return
+
+    allowed = {addr.strip().lower() for addr in allowed_env.split(",") if addr.strip()}
+    blocked = [a for a in addresses if a.strip().lower() not in allowed]
+    if not blocked:
+        return
+
+    error_console.print(
+        f"[red]Blocked: {', '.join(blocked)} is not in the allowed recipients list.\n"
+        f"Allowed: {', '.join(sorted(allowed))}[/red]"
+    )
+
+    log_dir = Path.home() / ".openclaw" / "workspace" / "automation" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    extra_log = " | ".join(f"{k}={v}" for k, v in alert_fields.items())
+    log_line = f"[{ts}] BLOCKED | addresses={','.join(blocked)}"
+    if extra_log:
+        log_line += f" | {extra_log}"
+    with open(log_dir / f"{log_name}-blocked.log", "a") as f:
+        f.write(log_line + "\n")
+
+    alert: dict[str, Any] = {
+        "type": f"{log_name}_blocked",
+        "timestamp": ts,
+        "blocked_addresses": blocked,
+        "allowed_recipients": sorted(allowed),
+        **alert_fields,
+    }
+    with open(log_dir / f"{log_name}-alert.json", "w") as f:
+        _json.dump(alert, f, indent=2)
+
     sys.exit(1)
 
 
@@ -288,53 +349,8 @@ def mail_send(
     require_capability("OFFICECLAW_ENABLE_SEND", "Sending emails")
     import base64
     import mimetypes
-    from pathlib import Path
 
-    # Recipient allowlist enforcement
-    allowed_recipients_env = os.environ.get("OFFICECLAW_ALLOWED_RECIPIENTS", "")
-    if not allowed_recipients_env:
-        error_console.print(
-            "[yellow]⚠️  No recipient allowlist configured. All addresses are permitted.[/yellow]\n"
-            "[yellow]   Set OFFICECLAW_ALLOWED_RECIPIENTS in .env to restrict outbound email.[/yellow]\n"
-            "[yellow]   Example: OFFICECLAW_ALLOWED_RECIPIENTS=alice@example.com,bob@example.com[/yellow]"
-        )
-    if allowed_recipients_env:
-        allowed = {
-            addr.strip().lower() for addr in allowed_recipients_env.split(",") if addr.strip()
-        }
-        if to.strip().lower() not in allowed:
-            from datetime import datetime, timezone
-
-            block_msg = (
-                f"Blocked: {to} is not in the allowed recipients list.\n"
-                f"Subject: {subject}\n"
-                f"Allowed: {', '.join(sorted(allowed))}"
-            )
-            error_console.print(f"[red]{block_msg}[/red]")
-
-            # Log the blocked attempt
-            log_dir = Path.home() / ".openclaw" / "workspace" / "automation" / "logs"
-            log_dir.mkdir(parents=True, exist_ok=True)
-            log_file = log_dir / "email-blocked.log"
-            ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-            with open(log_file, "a") as f:
-                f.write(f"[{ts}] BLOCKED | to={to} | subject={subject}\n")
-
-            # Alert: write a machine-readable alert file for external monitoring
-            alert_file = log_dir / "email-alert.json"
-            import json as _json
-
-            alert = {
-                "type": "email_blocked",
-                "timestamp": ts,
-                "to": to,
-                "subject": subject,
-                "allowed_recipients": sorted(allowed),
-            }
-            with open(alert_file, "w") as f:
-                _json.dump(alert, f, indent=2)
-
-            sys.exit(1)
+    _enforce_recipient_allowlist([to], "outbound email", "email", subject=subject)
 
     try:
         attachments = []
@@ -642,25 +658,30 @@ def calendar_get(ctx: click.Context, event_id: str) -> None:
 @click.option("--start", required=True, help="Start datetime (YYYY-MM-DDTHH:MM:SS)")
 @click.option("--end", required=True, help="End datetime (YYYY-MM-DDTHH:MM:SS)")
 @click.option("--location", default="", help="Event location")
+@click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
 @click.pass_context
-def calendar_create(ctx: click.Context, subject: str, start: str, end: str, location: str) -> None:
+def calendar_create(
+    ctx: click.Context, subject: str, start: str, end: str, location: str, attendee: tuple[str, ...]
+) -> None:
     """Create a calendar event."""
+    _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", subject=subject)
+
     try:
-        with GraphClient() as client:
-            event = {
-                "subject": subject,
-                "start": {"dateTime": start, "timeZone": "UTC"},
-                "end": {"dateTime": end, "timeZone": "UTC"},
-            }
-            if location:
-                event["location"] = {"displayName": location}
+        from officeclaw.calendar import CalendarClient
 
-            result = client.post("/me/events", event)
+        with CalendarClient() as cc:
+            result = cc.create_event(
+                subject=subject,
+                start=start,
+                end=end,
+                location=location or None,
+                attendees=list(attendee) if attendee else None,
+            )
 
-            if ctx.obj.get("json"):
-                output_json(result)
-            else:
-                console.print(f"[green]✓[/green] Event created: {subject}")
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Event created: {subject}")
 
     except Exception as e:
         handle_error(e)
@@ -673,6 +694,7 @@ def calendar_create(ctx: click.Context, subject: str, start: str, end: str, loca
 @click.option("--end", default=None, help="New end datetime")
 @click.option("--location", default=None, help="New location")
 @click.option("--body", default=None, help="New description")
+@click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
 @click.pass_context
 def calendar_update(
     ctx: click.Context,
@@ -682,8 +704,11 @@ def calendar_update(
     end: str | None,
     location: str | None,
     body: str | None,
+    attendee: tuple[str, ...],
 ) -> None:
     """Update a calendar event."""
+    _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", event_id=event_id)
+
     try:
         from officeclaw.calendar import CalendarClient
 
@@ -695,6 +720,7 @@ def calendar_update(
                 end=end,
                 location=location,
                 body=body,
+                attendees=list(attendee) if attendee else None,
             )
 
         if ctx.obj.get("json"):

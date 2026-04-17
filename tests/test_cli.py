@@ -183,6 +183,168 @@ class TestCalendarCommands:
 
         assert result.exit_code != 0
 
+    def test_calendar_create_attendee_allowed(self):
+        """calendar create should proceed when attendee is in the allowlist."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with (
+            patch.dict(
+                "os.environ",
+                {"OFFICECLAW_ALLOWED_RECIPIENTS": "alice@example.com"},
+            ),
+            patch("officeclaw.calendar.CalendarClient") as mock_cc_class,
+        ):
+            mock_cc = MagicMock()
+            mock_cc.create_event.return_value = {"id": "evt1", "subject": "Sync"}
+            mock_cc_class.return_value.__enter__ = MagicMock(return_value=mock_cc)
+            mock_cc_class.return_value.__exit__ = MagicMock(return_value=False)
+            result = runner.invoke(
+                main,
+                [
+                    "calendar",
+                    "create",
+                    "--subject",
+                    "Sync",
+                    "--start",
+                    "2026-04-17T10:00:00",
+                    "--end",
+                    "2026-04-17T11:00:00",
+                    "--attendee",
+                    "alice@example.com",
+                ],
+            )
+        assert result.exit_code == 0
+
+    def test_calendar_create_attendee_blocked(self):
+        """calendar create should exit 1 when attendee is not in the allowlist."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with (
+            patch.dict(
+                "os.environ",
+                {"OFFICECLAW_ALLOWED_RECIPIENTS": "alice@example.com"},
+            ),
+            runner.isolated_filesystem(),
+        ):
+            result = runner.invoke(
+                main,
+                [
+                    "calendar",
+                    "create",
+                    "--subject",
+                    "Sync",
+                    "--start",
+                    "2026-04-17T10:00:00",
+                    "--end",
+                    "2026-04-17T11:00:00",
+                    "--attendee",
+                    "eve@evil.com",
+                ],
+            )
+        assert result.exit_code != 0
+        assert "eve@evil.com" in result.output
+
+    def test_calendar_create_no_allowlist_warning(self):
+        """calendar create warns when no allowlist is configured but still proceeds."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("officeclaw.calendar.CalendarClient") as mock_cc_class,
+        ):
+            mock_cc = MagicMock()
+            mock_cc.create_event.return_value = {"id": "evt1", "subject": "Sync"}
+            mock_cc_class.return_value.__enter__ = MagicMock(return_value=mock_cc)
+            mock_cc_class.return_value.__exit__ = MagicMock(return_value=False)
+            result = runner.invoke(
+                main,
+                [
+                    "calendar",
+                    "create",
+                    "--subject",
+                    "Sync",
+                    "--start",
+                    "2026-04-17T10:00:00",
+                    "--end",
+                    "2026-04-17T11:00:00",
+                    "--attendee",
+                    "anyone@example.com",
+                ],
+            )
+        assert "allowlist" in result.output.lower() or "OFFICECLAW_ALLOWED_RECIPIENTS" in result.output
+        assert result.exit_code == 0
+
+    def test_calendar_update_attendee_blocked(self):
+        """calendar update should exit 1 when attendee is not in the allowlist."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with (
+            patch.dict(
+                "os.environ",
+                {"OFFICECLAW_ALLOWED_RECIPIENTS": "alice@example.com"},
+            ),
+            runner.isolated_filesystem(),
+        ):
+            result = runner.invoke(
+                main,
+                [
+                    "calendar",
+                    "update",
+                    "evt-123",
+                    "--attendee",
+                    "eve@evil.com",
+                ],
+            )
+        assert result.exit_code != 0
+        assert "eve@evil.com" in result.output
+
+    def test_calendar_update_attendee_allowed(self):
+        """calendar update should proceed when attendee is in the allowlist."""
+        import officeclaw.cli
+
+        officeclaw.cli._dotenv_loaded = True
+        from officeclaw.cli import main
+
+        runner = CliRunner()
+        with (
+            patch.dict(
+                "os.environ",
+                {"OFFICECLAW_ALLOWED_RECIPIENTS": "alice@example.com"},
+            ),
+            patch("officeclaw.calendar.CalendarClient") as mock_cc_class,
+        ):
+            mock_cc = MagicMock()
+            mock_cc.update_event.return_value = {"id": "evt-123", "subject": "Sync"}
+            mock_cc_class.return_value.__enter__ = MagicMock(return_value=mock_cc)
+            mock_cc_class.return_value.__exit__ = MagicMock(return_value=False)
+            result = runner.invoke(
+                main,
+                [
+                    "calendar",
+                    "update",
+                    "evt-123",
+                    "--attendee",
+                    "alice@example.com",
+                ],
+            )
+        assert result.exit_code == 0
+
 
 class TestTasksCommands:
     """Test tasks-related CLI commands."""

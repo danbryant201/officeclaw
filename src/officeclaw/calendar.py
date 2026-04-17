@@ -161,6 +161,7 @@ class CalendarClient:
         end: str | None = None,
         location: str | None = None,
         body: str | None = None,
+        attendees: list[str] | None = None,
         timezone: str = "UTC",
     ) -> dict[str, Any]:
         """
@@ -203,6 +204,12 @@ class CalendarClient:
                 "contentType": "Text",
                 "content": body,
             }
+
+        if attendees is not None:
+            data["attendees"] = [
+                {"emailAddress": {"address": email}, "type": "required"}
+                for email in attendees
+            ]
 
         return self._client.patch(f"/me/events/{event_id}", data)
 

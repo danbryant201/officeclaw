@@ -2,6 +2,15 @@
 
 All notable changes to OfficeClaw are documented here.
 
+## [1.0.5] — 2026-04-17
+
+### Added
+- **Calendar attendees** — `calendar create` and `calendar update` now accept `--attendee` (repeatable) to invite attendees to events.
+- **Attendee allowlist enforcement** — `OFFICECLAW_ALLOWED_RECIPIENTS` now applies to calendar attendees as well as email recipients. Blocked attempts are logged to `calendar-blocked.log` and `calendar-alert.json`.
+
+### Changed
+- Extracted shared allowlist logic into `_enforce_recipient_allowlist()` helper, eliminating duplicated code across `mail send`, `calendar create`, and `calendar update`.
+
 ## [1.0.4] — 2026-04-04
 
 ### Added

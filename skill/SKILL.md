@@ -7,7 +7,7 @@ user-invocable: true
 compatibility: Requires Python 3.9+, network access to graph.microsoft.com, and one-time OAuth setup
 metadata:
   author: Daniel Thomas
-  version: "1.0.4"
+  version: "1.0.5"
   openclaw:
     requires:
       anyBins: ["python", "python3", "officeclaw"]
@@ -146,12 +146,17 @@ officeclaw calendar create \
   --subject "Team Meeting" \
   --start "2026-02-15T10:00:00" \
   --end "2026-02-15T11:00:00" \
-  --location "Conference Room"
+  --location "Conference Room" \
+  --attendee alice@example.com \
+  --attendee bob@example.com
 officeclaw calendar get <event-id>
 officeclaw calendar update <event-id> --subject "Updated Meeting"
+officeclaw calendar update <event-id> --attendee alice@example.com
 officeclaw calendar delete <event-id>
 officeclaw --json calendar list --start 2026-02-01 --end 2026-02-28
 ```
+
+`--attendee` is repeatable and subject to the same `OFFICECLAW_ALLOWED_RECIPIENTS` allowlist as outbound email.
 
 ### Task Commands
 
@@ -213,7 +218,7 @@ When using this skill:
 ## Security & Privacy
 
 - **Write operations disabled by default**: Send, reply, forward, and delete are all blocked unless explicitly enabled via `OFFICECLAW_ENABLE_SEND` and `OFFICECLAW_ENABLE_DELETE` environment variables. This prevents accidental or unauthorised write actions.
-- **Recipient allowlist (v1.0.4+)**: When `OFFICECLAW_ALLOWED_RECIPIENTS` is set, outbound email is restricted to listed addresses only. Blocked attempts are logged to `email-blocked.log` and an `email-alert.json` alert file is written for monitoring. If not set, a runtime warning is displayed on each send. **Strongly recommended for any AI agent deployment.**
+- **Recipient allowlist (v1.0.4+)**: When `OFFICECLAW_ALLOWED_RECIPIENTS` is set, it restricts both outbound email recipients and calendar event attendees to listed addresses only. Blocked attempts are logged (`email-blocked.log` / `calendar-blocked.log`) and a JSON alert file is written for monitoring. If not set, a runtime warning is displayed. **Strongly recommended for any AI agent deployment.**
 - **No client secret required**: Uses device code flow (public client) by default
 - **Least-privilege permissions**: You choose which Graph API scopes to grant — read-only is sufficient for most use cases. See the setup guide above.
 - **Tokens stored securely**: `~/.officeclaw/token_cache.json` with 600 file permissions
