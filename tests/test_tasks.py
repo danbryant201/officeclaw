@@ -498,8 +498,21 @@ class TestTasksClient:
         mock_client.get_all.side_effect = GraphAPIError("NotFound", "Not found", 404)
         mock_client_class.return_value = mock_client
 
-        result = TasksClient().get_task_list_members("list-123")
-        assert result == []
+        assert TasksClient().get_task_list_members("list-123") == []
+
+    @patch("officeclaw.tasks.GraphClient")
+    def test_get_task_list_members_bad_request_returns_empty(self, mock_client_class, sample_task_list):
+        from officeclaw.tasks import TasksClient
+        from officeclaw.exceptions import GraphAPIError
+
+        mock_client = MagicMock()
+        mock_client.get.return_value = {**sample_task_list, "isShared": True}
+        mock_client.get_all.side_effect = GraphAPIError(
+            "BadRequest", "Resource not found for the segment 'members'", 400
+        )
+        mock_client_class.return_value = mock_client
+
+        assert TasksClient().get_task_list_members("list-123") == []
 
     @patch("officeclaw.tasks.GraphClient")
     def test_list_checklist_items(self, mock_client_class, sample_checklist_item):

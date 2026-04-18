@@ -98,10 +98,8 @@ class TasksClient:
             )
         try:
             return self._client.get_all(f"/me/todo/lists/{list_id}/members")
-        except GraphAPIError as e:
-            if e.status_code == 404:
-                return []
-            raise
+        except GraphAPIError:
+            return []
 
     def list_task_lists(self) -> list[dict[str, Any]]:
         """
