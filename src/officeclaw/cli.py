@@ -661,7 +661,6 @@ def calendar_get(ctx: click.Context, event_id: str) -> None:
 @click.option("--body", default=None, help="Event description")
 @click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
 @click.option("--all-day", "is_all_day", is_flag=True, default=False, help="Mark as all-day event")
-@click.option("--online-meeting", "is_online_meeting", is_flag=True, default=False, help="Generate Teams meeting link")
 @click.pass_context
 def calendar_create(
     ctx: click.Context,
@@ -672,7 +671,6 @@ def calendar_create(
     body: str | None,
     attendee: tuple[str, ...],
     is_all_day: bool,
-    is_online_meeting: bool,
 ) -> None:
     """Create a calendar event."""
     _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", subject=subject)
@@ -689,7 +687,6 @@ def calendar_create(
                 body=body,
                 attendees=list(attendee) if attendee else None,
                 is_all_day=is_all_day,
-                is_online_meeting=is_online_meeting,
             )
 
         if ctx.obj.get("json"):
@@ -710,7 +707,6 @@ def calendar_create(
 @click.option("--body", default=None, help="New description")
 @click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
 @click.option("--all-day", "is_all_day", is_flag=True, default=False, help="Mark as all-day event")
-@click.option("--online-meeting", "is_online_meeting", is_flag=True, default=False, help="Generate Teams meeting link")
 @click.pass_context
 def calendar_update(
     ctx: click.Context,
@@ -722,7 +718,6 @@ def calendar_update(
     body: str | None,
     attendee: tuple[str, ...],
     is_all_day: bool,
-    is_online_meeting: bool,
 ) -> None:
     """Update a calendar event."""
     _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", event_id=event_id)
@@ -740,7 +735,6 @@ def calendar_update(
                 body=body,
                 attendees=list(attendee) if attendee else None,
                 is_all_day=True if is_all_day else None,
-                is_online_meeting=True if is_online_meeting else None,
             )
 
         if ctx.obj.get("json"):

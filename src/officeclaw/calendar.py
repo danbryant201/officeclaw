@@ -97,7 +97,6 @@ class CalendarClient:
         attendees: list[str] | None = None,
         timezone: str = "UTC",
         is_all_day: bool = False,
-        is_online_meeting: bool = False,
     ) -> dict[str, Any]:
         """
         Create a calendar event.
@@ -111,7 +110,6 @@ class CalendarClient:
             attendees: List of attendee emails
             timezone: Timezone for start/end
             is_all_day: All-day event
-            is_online_meeting: Create Teams meeting
 
         Returns:
             Created event object
@@ -147,10 +145,6 @@ class CalendarClient:
                 for email in attendees
             ]
 
-        if is_online_meeting:
-            event["isOnlineMeeting"] = True
-            event["onlineMeetingProvider"] = "teamsForBusiness"
-
         return self._client.post("/me/events", event)
 
     def update_event(
@@ -164,7 +158,6 @@ class CalendarClient:
         attendees: list[str] | None = None,
         timezone: str = "UTC",
         is_all_day: bool | None = None,
-        is_online_meeting: bool | None = None,
     ) -> dict[str, Any]:
         """
         Update a calendar event.
@@ -215,11 +208,6 @@ class CalendarClient:
 
         if is_all_day is not None:
             data["isAllDay"] = is_all_day
-
-        if is_online_meeting is not None:
-            data["isOnlineMeeting"] = is_online_meeting
-            if is_online_meeting:
-                data["onlineMeetingProvider"] = "teamsForBusiness"
 
         return self._client.patch(f"/me/events/{event_id}", data)
 

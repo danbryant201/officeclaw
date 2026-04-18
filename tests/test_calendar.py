@@ -106,27 +106,6 @@ class TestCalendarClient:
         assert len(event_data["attendees"]) == 2
 
     @patch("officeclaw.calendar.GraphClient")
-    def test_create_online_meeting(self, mock_client_class, sample_event):
-        """Test creating Teams meeting."""
-        from officeclaw.calendar import CalendarClient
-
-        mock_client = MagicMock()
-        mock_client.post.return_value = sample_event
-        mock_client_class.return_value = mock_client
-
-        client = CalendarClient()
-        client.create_event(
-            subject="Teams Call",
-            start="2026-02-15T10:00:00",
-            end="2026-02-15T11:00:00",
-            is_online_meeting=True,
-        )
-
-        call_args = mock_client.post.call_args
-        event_data = call_args[0][1]
-        assert event_data["isOnlineMeeting"] is True
-
-    @patch("officeclaw.calendar.GraphClient")
     def test_create_event_with_body(self, mock_client_class, sample_event):
         """Test creating event with body description."""
         from officeclaw.calendar import CalendarClient
@@ -213,23 +192,6 @@ class TestCalendarClient:
         call_args = mock_client.patch.call_args
         patch_data = call_args[0][1]
         assert patch_data["isAllDay"] is True
-
-    @patch("officeclaw.calendar.GraphClient")
-    def test_update_event_online_meeting(self, mock_client_class, sample_event):
-        """Test updating an event to add Teams meeting link."""
-        from officeclaw.calendar import CalendarClient
-
-        mock_client = MagicMock()
-        mock_client.patch.return_value = sample_event
-        mock_client_class.return_value = mock_client
-
-        client = CalendarClient()
-        client.update_event("evt-123", is_online_meeting=True)
-
-        call_args = mock_client.patch.call_args
-        patch_data = call_args[0][1]
-        assert patch_data["isOnlineMeeting"] is True
-        assert patch_data["onlineMeetingProvider"] == "teamsForBusiness"
 
     @patch("officeclaw.calendar.GraphClient")
     def test_update_event(self, mock_client_class, sample_event):

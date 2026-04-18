@@ -107,7 +107,7 @@ Activate this skill when the user needs to:
 ### Calendar Operations
 - **View events**: "What's on my calendar today?", "Show meetings this week"
 - **Create events**: "Schedule a meeting with...", "Add dentist appointment on Friday", "Block out all day for a holiday"
-- **Update events**: "Move the 2pm meeting to 3pm", "Cancel tomorrow's standup", "Add a Teams link to the Friday review"
+- **Update events**: "Move the 2pm meeting to 3pm", "Cancel tomorrow's standup"
 
 ### Task Management
 - **List tasks**: "What's on my to-do list?", "Show incomplete tasks"
@@ -149,14 +149,12 @@ officeclaw calendar create \
   --location "Conference Room" \
   --body "Agenda: Q1 review" \
   --attendee alice@example.com \
-  --attendee bob@example.com \
-  --online-meeting
+  --attendee bob@example.com
 officeclaw calendar create --subject "Public Holiday" --start 2026-04-25 --end 2026-04-26 --all-day
 officeclaw calendar get <event-id>
 officeclaw calendar update <event-id> --subject "Updated Meeting"
 officeclaw calendar update <event-id> --body "Updated agenda"
 officeclaw calendar update <event-id> --attendee alice@example.com
-officeclaw calendar update <event-id> --online-meeting
 officeclaw calendar update <event-id> --all-day
 officeclaw calendar delete <event-id>
 officeclaw --json calendar list --start 2026-02-01 --end 2026-02-28
@@ -164,7 +162,7 @@ officeclaw --json calendar list --start 2026-02-01 --end 2026-02-28
 
 `--attendee` is repeatable and subject to the same `OFFICECLAW_ALLOWED_RECIPIENTS` allowlist as outbound email.
 
-`--online-meeting` generates a Teams meeting link (`teamsForBusiness`). `--all-day` marks the event as all-day — provide dates as `YYYY-MM-DD` and set end to the day after the last day (e.g. a one-day holiday on the 25th uses `--start 2026-04-25 --end 2026-04-26`).
+`--all-day` marks the event as all-day — provide dates as `YYYY-MM-DD` and set end to the day after the last day (e.g. a one-day holiday on the 25th uses `--start 2026-04-25 --end 2026-04-26`).
 
 ### Task Commands
 
