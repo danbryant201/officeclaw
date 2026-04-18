@@ -658,10 +658,21 @@ def calendar_get(ctx: click.Context, event_id: str) -> None:
 @click.option("--start", required=True, help="Start datetime (YYYY-MM-DDTHH:MM:SS)")
 @click.option("--end", required=True, help="End datetime (YYYY-MM-DDTHH:MM:SS)")
 @click.option("--location", default="", help="Event location")
+@click.option("--body", default=None, help="Event description")
 @click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
+@click.option("--all-day", "is_all_day", is_flag=True, default=False, help="Mark as all-day event")
+@click.option("--online-meeting", "is_online_meeting", is_flag=True, default=False, help="Generate Teams meeting link")
 @click.pass_context
 def calendar_create(
-    ctx: click.Context, subject: str, start: str, end: str, location: str, attendee: tuple[str, ...]
+    ctx: click.Context,
+    subject: str,
+    start: str,
+    end: str,
+    location: str,
+    body: str | None,
+    attendee: tuple[str, ...],
+    is_all_day: bool,
+    is_online_meeting: bool,
 ) -> None:
     """Create a calendar event."""
     _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", subject=subject)
@@ -675,7 +686,10 @@ def calendar_create(
                 start=start,
                 end=end,
                 location=location or None,
+                body=body,
                 attendees=list(attendee) if attendee else None,
+                is_all_day=is_all_day,
+                is_online_meeting=is_online_meeting,
             )
 
         if ctx.obj.get("json"):
@@ -695,6 +709,8 @@ def calendar_create(
 @click.option("--location", default=None, help="New location")
 @click.option("--body", default=None, help="New description")
 @click.option("--attendee", multiple=True, help="Attendee email address (repeatable)")
+@click.option("--all-day", "is_all_day", is_flag=True, default=False, help="Mark as all-day event")
+@click.option("--online-meeting", "is_online_meeting", is_flag=True, default=False, help="Generate Teams meeting link")
 @click.pass_context
 def calendar_update(
     ctx: click.Context,
@@ -705,6 +721,8 @@ def calendar_update(
     location: str | None,
     body: str | None,
     attendee: tuple[str, ...],
+    is_all_day: bool,
+    is_online_meeting: bool,
 ) -> None:
     """Update a calendar event."""
     _enforce_recipient_allowlist(list(attendee), "calendar attendees", "calendar", event_id=event_id)
@@ -721,6 +739,8 @@ def calendar_update(
                 location=location,
                 body=body,
                 attendees=list(attendee) if attendee else None,
+                is_all_day=True if is_all_day else None,
+                is_online_meeting=True if is_online_meeting else None,
             )
 
         if ctx.obj.get("json"):

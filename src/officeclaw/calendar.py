@@ -163,6 +163,8 @@ class CalendarClient:
         body: str | None = None,
         attendees: list[str] | None = None,
         timezone: str = "UTC",
+        is_all_day: bool | None = None,
+        is_online_meeting: bool | None = None,
     ) -> dict[str, Any]:
         """
         Update a calendar event.
@@ -210,6 +212,14 @@ class CalendarClient:
                 {"emailAddress": {"address": email}, "type": "required"}
                 for email in attendees
             ]
+
+        if is_all_day is not None:
+            data["isAllDay"] = is_all_day
+
+        if is_online_meeting is not None:
+            data["isOnlineMeeting"] = is_online_meeting
+            if is_online_meeting:
+                data["onlineMeetingProvider"] = "teamsForBusiness"
 
         return self._client.patch(f"/me/events/{event_id}", data)
 

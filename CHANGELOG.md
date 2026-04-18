@@ -2,6 +2,13 @@
 
 All notable changes to OfficeClaw are documented here.
 
+## [1.0.6] — 2026-04-18
+
+### Added
+- **Calendar body/description** — `calendar create` now accepts `--body` to set an event description (matches existing `calendar update` behaviour).
+- **All-day events** — `calendar create` and `calendar update` now accept `--all-day` flag to mark events as all-day.
+- **Online meetings (Teams)** — `calendar create` and `calendar update` now accept `--online-meeting` flag to generate a Teams meeting link (`teamsForBusiness`).
+
 ## [1.0.5] — 2026-04-17
 
 ### Added
