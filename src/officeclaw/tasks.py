@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 from officeclaw.client import GraphClient
-from officeclaw.exceptions import GraphAPIError
 
 _DAY_MAP = {
     "MON": "monday",
@@ -86,20 +85,6 @@ class TasksClient:
         """Initialize tasks client."""
         self._client = graph_client or GraphClient()
         self._owns_client = graph_client is None
-
-    def get_task_list_members(self, list_id: str) -> list[dict[str, Any]]:
-        """Return members of a shared list, or [] if endpoint is unsupported."""
-        info = self._client.get(f"/me/todo/lists/{list_id}")
-        if not info.get("isShared"):
-            raise GraphAPIError(
-                "ListNotShared",
-                "Task list is not shared; assignment requires a shared list.",
-                400,
-            )
-        try:
-            return self._client.get_all(f"/me/todo/lists/{list_id}/members")
-        except GraphAPIError:
-            return []
 
     def list_task_lists(self) -> list[dict[str, Any]]:
         """
@@ -199,7 +184,6 @@ class TasksClient:
         reminder: str | None = None,
         add_to_my_day: bool = False,
         recurrence: dict | None = None,
-        assignee: str | None = None,
     ) -> dict[str, Any]:
         """
         Create a new task.
@@ -213,7 +197,6 @@ class TasksClient:
             reminder: Reminder datetime (ISO format)
             add_to_my_day: Pin to My Day
             recurrence: patternedRecurrence dict (use _parse_recurrence)
-            assignee: Email to assign to (shared lists only)
 
         Returns:
             Created task object
@@ -252,9 +235,6 @@ class TasksClient:
         if recurrence is not None:
             task["recurrence"] = recurrence
 
-        if assignee is not None:
-            task["assignedTo"] = assignee
-
         return self._client.post(f"/me/todo/lists/{list_id}/tasks", task)
 
     def update_task(
@@ -270,7 +250,6 @@ class TasksClient:
         add_to_my_day: bool | None = None,
         recurrence: dict | None = None,
         recurrence_off: bool = False,
-        assignee: str | None = None,
     ) -> dict[str, Any]:
         """
         Update a task.
@@ -287,7 +266,6 @@ class TasksClient:
             add_to_my_day: True=add, False=remove, None=no change
             recurrence: Set recurrence (patternedRecurrence dict)
             recurrence_off: Clear recurrence
-            assignee: Assign to email (shared lists only)
 
         Returns:
             Updated task object
@@ -332,9 +310,6 @@ class TasksClient:
             data["recurrence"] = None
         elif recurrence is not None:
             data["recurrence"] = recurrence
-
-        if assignee is not None:
-            data["assignedTo"] = assignee
 
         return self._client.patch(
             f"/me/todo/lists/{list_id}/tasks/{task_id}",

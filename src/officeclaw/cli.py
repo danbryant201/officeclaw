@@ -956,7 +956,6 @@ def tasks_list(ctx: click.Context, list_id: str, status: str) -> None:
     default=None,
     help="Recurrence: daily, daily:2, weekly, weekly:MON,WED, monthly, monthly:15, yearly, weekdays",
 )
-@click.option("--assignee", default=None, help="Assign to email (shared lists only)")
 @click.pass_context
 def tasks_create(
     ctx: click.Context,
@@ -968,42 +967,17 @@ def tasks_create(
     reminder: str | None,
     add_to_my_day: bool,
     repeat: str | None,
-    assignee: str | None,
 ) -> None:
     """Create a new task."""
     from datetime import date
-
-    if assignee:
-        _enforce_recipient_allowlist([assignee], "task assignees", "task-assign", list_id=list_id)
 
     today = date.today().isoformat()
     recurrence = _resolve_repeat(repeat, due_date or today)
 
     try:
         from officeclaw.tasks import TasksClient
-        from officeclaw.exceptions import GraphAPIError
 
         with TasksClient() as tc:
-            if assignee:
-                try:
-                    members = tc.get_task_list_members(list_id)
-                except GraphAPIError as e:
-                    if e.code == "ListNotShared":
-                        error_console.print(f"[red]Error:[/red] {e.message}")
-                        sys.exit(1)
-                    raise
-                if members:
-                    emails = {m.get("emailAddress", "").lower() for m in members}
-                    if assignee.lower() not in emails:
-                        error_console.print(
-                            f"[red]Blocked:[/red] {assignee} is not a member of this list."
-                        )
-                        sys.exit(1)
-                else:
-                    error_console.print(
-                        "[yellow]⚠️  Could not verify list membership — proceeding (API will enforce).[/yellow]"
-                    )
-
             result = tc.create_task(
                 list_id,
                 title,
@@ -1013,7 +987,6 @@ def tasks_create(
                 reminder=reminder,
                 add_to_my_day=add_to_my_day,
                 recurrence=recurrence,
-                assignee=assignee,
             )
 
         if ctx.obj.get("json"):
@@ -1125,7 +1098,6 @@ def tasks_get(ctx: click.Context, list_id: str, task_id: str) -> None:
     help="Set recurrence (same syntax as create)",
 )
 @click.option("--no-repeat", "recurrence_off", is_flag=True, default=False, help="Clear recurrence")
-@click.option("--assignee", default=None, help="Assign to email (shared lists only)")
 @click.pass_context
 def tasks_update(
     ctx: click.Context,
@@ -1140,7 +1112,6 @@ def tasks_update(
     add_to_my_day: bool | None,
     repeat: str | None,
     recurrence_off: bool,
-    assignee: str | None,
 ) -> None:
     """Update a task."""
     from datetime import date
@@ -1149,37 +1120,13 @@ def tasks_update(
         error_console.print("[red]Error:[/red] --repeat and --no-repeat are mutually exclusive.")
         sys.exit(1)
 
-    if assignee:
-        _enforce_recipient_allowlist([assignee], "task assignees", "task-assign", task_id=task_id)
-
     today = date.today().isoformat()
     recurrence = _resolve_repeat(repeat, today)
 
     try:
         from officeclaw.tasks import TasksClient
-        from officeclaw.exceptions import GraphAPIError
 
         with TasksClient() as tc:
-            if assignee:
-                try:
-                    members = tc.get_task_list_members(list_id)
-                except GraphAPIError as e:
-                    if e.code == "ListNotShared":
-                        error_console.print(f"[red]Error:[/red] {e.message}")
-                        sys.exit(1)
-                    raise
-                if members:
-                    emails = {m.get("emailAddress", "").lower() for m in members}
-                    if assignee.lower() not in emails:
-                        error_console.print(
-                            f"[red]Blocked:[/red] {assignee} is not a member of this list."
-                        )
-                        sys.exit(1)
-                else:
-                    error_console.print(
-                        "[yellow]⚠️  Could not verify list membership — proceeding (API will enforce).[/yellow]"
-                    )
-
             result = tc.update_task(
                 list_id,
                 task_id,
@@ -1192,7 +1139,6 @@ def tasks_update(
                 add_to_my_day=add_to_my_day,
                 recurrence=recurrence,
                 recurrence_off=recurrence_off,
-                assignee=assignee,
             )
 
         if ctx.obj.get("json"):

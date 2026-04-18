@@ -191,10 +191,6 @@ officeclaw tasks update --list-id <list-id> --task-id <task-id> \
 officeclaw tasks update --list-id <list-id> --task-id <task-id> \
   --no-reminder --no-repeat --remove-from-my-day
 
-# Assign task (shared lists only — blocked if not in allowlist)
-officeclaw tasks update --list-id <list-id> --task-id <task-id> \
-  --assignee person@example.com
-
 officeclaw tasks complete --list-id <list-id> --task-id <task-id>
 officeclaw tasks reopen --list-id <list-id> --task-id <task-id>
 officeclaw tasks delete --list-id <list-id> --task-id <task-id>
@@ -222,7 +218,7 @@ officeclaw tasks steps complete --list-id <id> --task-id <tid> --step-id <sid>
 officeclaw tasks steps delete  --list-id <id> --task-id <tid> --step-id <sid>
 ```
 
-`--assignee` follows the same `OFFICECLAW_ALLOWED_RECIPIENTS` allowlist as outbound email and calendar attendees. Assignment requires a shared list; personal lists will return an error.
+> **Note:** Task assignment is not supported by the Microsoft Graph To Do API — the `assignedTo` field is read-only and cannot be set programmatically.
 
 ## Output Format
 
