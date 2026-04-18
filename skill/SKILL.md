@@ -7,7 +7,7 @@ user-invocable: true
 compatibility: Requires Python 3.9+, network access to graph.microsoft.com, and one-time OAuth setup
 metadata:
   author: Daniel Thomas
-  version: "1.0.6"
+  version: "1.0.7"
   openclaw:
     requires:
       anyBins: ["python", "python3", "officeclaw"]
@@ -170,10 +170,59 @@ officeclaw --json calendar list --start 2026-02-01 --end 2026-02-28
 officeclaw tasks list-lists                              # List task lists
 officeclaw tasks list --list-id <list-id>                # List tasks
 officeclaw tasks list --list-id <list-id> --status active  # Active tasks only
-officeclaw tasks create --list-id <list-id> --title "Complete report" --due-date "2026-02-20"
+officeclaw tasks get --list-id <list-id> --task-id <task-id>
+
+# Create with full options
+officeclaw tasks create \
+  --list-id <list-id> \
+  --title "Complete report" \
+  --due-date "2026-02-20" \
+  --body "See attached draft" \
+  --importance high \
+  --reminder "2026-02-19T09:00:00" \
+  --add-to-my-day \
+  --repeat weekly:MON,WED
+
+# Update: set reminder and pin to My Day
+officeclaw tasks update --list-id <list-id> --task-id <task-id> \
+  --add-to-my-day --reminder "2026-04-21T08:00:00"
+
+# Update: clear reminder and recurrence, remove from My Day
+officeclaw tasks update --list-id <list-id> --task-id <task-id> \
+  --no-reminder --no-repeat --remove-from-my-day
+
+# Assign task (shared lists only — blocked if not in allowlist)
+officeclaw tasks update --list-id <list-id> --task-id <task-id> \
+  --assignee person@example.com
+
 officeclaw tasks complete --list-id <list-id> --task-id <task-id>
 officeclaw tasks reopen --list-id <list-id> --task-id <task-id>
+officeclaw tasks delete --list-id <list-id> --task-id <task-id>
 ```
+
+**Recurrence syntax for `--repeat`:**
+
+| Value | Meaning |
+|---|---|
+| `daily` | Every day |
+| `daily:N` | Every N days |
+| `weekly` | Every week (same day) |
+| `weekly:MON,WED` | Weekly on specific days |
+| `weekdays` | Mon–Fri |
+| `monthly` | Monthly on same day-of-month |
+| `monthly:15` | Monthly on the 15th |
+| `yearly` | Annually |
+
+**Checklist item (step) commands:**
+
+```bash
+officeclaw tasks steps list    --list-id <id> --task-id <tid>
+officeclaw tasks steps add     --list-id <id> --task-id <tid> --title "Step text"
+officeclaw tasks steps complete --list-id <id> --task-id <tid> --step-id <sid>
+officeclaw tasks steps delete  --list-id <id> --task-id <tid> --step-id <sid>
+```
+
+`--assignee` follows the same `OFFICECLAW_ALLOWED_RECIPIENTS` allowlist as outbound email and calendar attendees. Assignment requires a shared list; personal lists will return an error.
 
 ## Output Format
 

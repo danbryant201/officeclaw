@@ -65,6 +65,13 @@ SAMPLE_TASK_LIST = {
     "isShared": False,
 }
 
+SAMPLE_CHECKLIST_ITEM = {
+    "id": "item-123",
+    "displayName": "Buy milk",
+    "isChecked": False,
+    "createdDateTime": "2026-04-18T08:00:00Z",
+}
+
 SAMPLE_TASK = {
     "id": "AAMkADE...",
     "title": "Complete report",
@@ -176,6 +183,12 @@ def sample_events() -> list[dict[str, Any]]:
         {**SAMPLE_EVENT, "id": "evt-2", "subject": "Client Call"},
         {**SAMPLE_EVENT, "id": "evt-3", "subject": "Project Review"},
     ]
+
+
+@pytest.fixture
+def sample_checklist_item() -> dict[str, Any]:
+    """Return a sample checklist item."""
+    return SAMPLE_CHECKLIST_ITEM.copy()
 
 
 @pytest.fixture

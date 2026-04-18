@@ -149,6 +149,19 @@ def _enforce_recipient_allowlist(
     sys.exit(1)
 
 
+def _resolve_repeat(repeat_str: str | None, start_date: str) -> dict | None:
+    """Parse repeat shorthand to a patternedRecurrence dict, or None if not provided."""
+    if repeat_str is None:
+        return None
+    from officeclaw.tasks import _parse_recurrence
+
+    try:
+        return _parse_recurrence(repeat_str, start_date)
+    except ValueError as e:
+        error_console.print(f"[red]Invalid --repeat value:[/red] {e}")
+        sys.exit(1)
+
+
 # ============================================
 # MAIN CLI GROUP
 # ============================================
@@ -932,24 +945,81 @@ def tasks_list(ctx: click.Context, list_id: str, status: str) -> None:
 @click.option("--list-id", required=True, help="Task list ID")
 @click.option("--title", required=True, help="Task title")
 @click.option("--due-date", default=None, help="Due date (YYYY-MM-DD)")
+@click.option("--body", default=None, help="Task note / description")
+@click.option(
+    "--importance", type=click.Choice(["low", "normal", "high"]), default="normal"
+)
+@click.option("--reminder", default=None, help="Reminder datetime (ISO, e.g. 2026-04-20T09:00:00)")
+@click.option("--add-to-my-day", "add_to_my_day", is_flag=True, default=False)
+@click.option(
+    "--repeat",
+    default=None,
+    help="Recurrence: daily, daily:2, weekly, weekly:MON,WED, monthly, monthly:15, yearly, weekdays",
+)
+@click.option("--assignee", default=None, help="Assign to email (shared lists only)")
 @click.pass_context
-def tasks_create(ctx: click.Context, list_id: str, title: str, due_date: str | None) -> None:
+def tasks_create(
+    ctx: click.Context,
+    list_id: str,
+    title: str,
+    due_date: str | None,
+    body: str | None,
+    importance: str,
+    reminder: str | None,
+    add_to_my_day: bool,
+    repeat: str | None,
+    assignee: str | None,
+) -> None:
     """Create a new task."""
+    from datetime import date
+
+    if assignee:
+        _enforce_recipient_allowlist([assignee], "task assignees", "task-assign", list_id=list_id)
+
+    today = date.today().isoformat()
+    recurrence = _resolve_repeat(repeat, due_date or today)
+
     try:
-        with GraphClient() as client:
-            task: dict[str, Any] = {"title": title}
-            if due_date:
-                task["dueDateTime"] = {
-                    "dateTime": f"{due_date}T00:00:00.0000000",
-                    "timeZone": "UTC",
-                }
+        from officeclaw.tasks import TasksClient
+        from officeclaw.exceptions import GraphAPIError
 
-            result = client.post(f"/me/todo/lists/{list_id}/tasks", task)
+        with TasksClient() as tc:
+            if assignee:
+                try:
+                    members = tc.get_task_list_members(list_id)
+                except GraphAPIError as e:
+                    if e.code == "ListNotShared":
+                        error_console.print(f"[red]Error:[/red] {e.message}")
+                        sys.exit(1)
+                    raise
+                if members:
+                    emails = {m.get("emailAddress", "").lower() for m in members}
+                    if assignee.lower() not in emails:
+                        error_console.print(
+                            f"[red]Blocked:[/red] {assignee} is not a member of this list."
+                        )
+                        sys.exit(1)
+                else:
+                    error_console.print(
+                        "[yellow]⚠️  Could not verify list membership — proceeding (API will enforce).[/yellow]"
+                    )
 
-            if ctx.obj.get("json"):
-                output_json(result)
-            else:
-                console.print(f"[green]✓[/green] Task created: {title}")
+            result = tc.create_task(
+                list_id,
+                title,
+                body=body,
+                due_date=due_date,
+                importance=importance,
+                reminder=reminder,
+                add_to_my_day=add_to_my_day,
+                recurrence=recurrence,
+                assignee=assignee,
+            )
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Task created: {title}")
 
     except Exception as e:
         handle_error(e)
@@ -1046,6 +1116,16 @@ def tasks_get(ctx: click.Context, list_id: str, task_id: str) -> None:
 @click.option(
     "--importance", type=click.Choice(["low", "normal", "high"]), default=None, help="Importance"
 )
+@click.option("--reminder", default=None, help="Set reminder (ISO datetime)")
+@click.option("--no-reminder", "reminder_off", is_flag=True, default=False, help="Clear reminder")
+@click.option("--add-to-my-day/--remove-from-my-day", "add_to_my_day", default=None)
+@click.option(
+    "--repeat",
+    default=None,
+    help="Set recurrence (same syntax as create)",
+)
+@click.option("--no-repeat", "recurrence_off", is_flag=True, default=False, help="Clear recurrence")
+@click.option("--assignee", default=None, help="Assign to email (shared lists only)")
 @click.pass_context
 def tasks_update(
     ctx: click.Context,
@@ -1055,12 +1135,51 @@ def tasks_update(
     body: str | None,
     due_date: str | None,
     importance: str | None,
+    reminder: str | None,
+    reminder_off: bool,
+    add_to_my_day: bool | None,
+    repeat: str | None,
+    recurrence_off: bool,
+    assignee: str | None,
 ) -> None:
     """Update a task."""
+    from datetime import date
+
+    if repeat and recurrence_off:
+        error_console.print("[red]Error:[/red] --repeat and --no-repeat are mutually exclusive.")
+        sys.exit(1)
+
+    if assignee:
+        _enforce_recipient_allowlist([assignee], "task assignees", "task-assign", task_id=task_id)
+
+    today = date.today().isoformat()
+    recurrence = _resolve_repeat(repeat, today)
+
     try:
         from officeclaw.tasks import TasksClient
+        from officeclaw.exceptions import GraphAPIError
 
         with TasksClient() as tc:
+            if assignee:
+                try:
+                    members = tc.get_task_list_members(list_id)
+                except GraphAPIError as e:
+                    if e.code == "ListNotShared":
+                        error_console.print(f"[red]Error:[/red] {e.message}")
+                        sys.exit(1)
+                    raise
+                if members:
+                    emails = {m.get("emailAddress", "").lower() for m in members}
+                    if assignee.lower() not in emails:
+                        error_console.print(
+                            f"[red]Blocked:[/red] {assignee} is not a member of this list."
+                        )
+                        sys.exit(1)
+                else:
+                    error_console.print(
+                        "[yellow]⚠️  Could not verify list membership — proceeding (API will enforce).[/yellow]"
+                    )
+
             result = tc.update_task(
                 list_id,
                 task_id,
@@ -1068,12 +1187,123 @@ def tasks_update(
                 body=body,
                 due_date=due_date,
                 importance=importance,
+                reminder=reminder,
+                reminder_off=reminder_off,
+                add_to_my_day=add_to_my_day,
+                recurrence=recurrence,
+                recurrence_off=recurrence_off,
+                assignee=assignee,
             )
 
         if ctx.obj.get("json"):
             output_json(result)
         else:
             console.print(f"[green]✓[/green] Task updated: {result.get('title', task_id)}")
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks.group("steps")
+def tasks_steps() -> None:
+    """Checklist item (step) operations for a task."""
+    pass
+
+
+@tasks_steps.command("list")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.pass_context
+def tasks_steps_list(ctx: click.Context, list_id: str, task_id: str) -> None:
+    """List checklist items (steps) for a task."""
+    try:
+        from officeclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            items = tc.list_checklist_items(list_id, task_id)
+
+        if ctx.obj.get("json"):
+            output_json(items)
+            return
+
+        if not items:
+            console.print("[yellow]No steps found.[/yellow]")
+            return
+
+        table = Table(title="Steps")
+        table.add_column("Done")
+        table.add_column("Title")
+        table.add_column("ID", style="dim", max_width=20)
+
+        for item in items:
+            done = "✓" if item.get("isChecked") else "○"
+            title = item.get("displayName", "")
+            item_id = item.get("id", "")[:20]
+            table.add_row(done, title, item_id + "...")
+
+        console.print(table)
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks_steps.command("add")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.option("--title", required=True, help="Step title")
+@click.pass_context
+def tasks_steps_add(ctx: click.Context, list_id: str, task_id: str, title: str) -> None:
+    """Add a checklist item (step) to a task."""
+    try:
+        from officeclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            result = tc.add_checklist_item(list_id, task_id, title)
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print(f"[green]✓[/green] Step added: {title}")
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks_steps.command("complete")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.option("--step-id", required=True, help="Checklist item ID")
+@click.pass_context
+def tasks_steps_complete(ctx: click.Context, list_id: str, task_id: str, step_id: str) -> None:
+    """Mark a checklist item (step) as done."""
+    try:
+        from officeclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            result = tc.complete_checklist_item(list_id, task_id, step_id)
+
+        if ctx.obj.get("json"):
+            output_json(result)
+        else:
+            console.print("[green]✓[/green] Step marked as done.")
+    except Exception as e:
+        handle_error(e)
+
+
+@tasks_steps.command("delete")
+@click.option("--list-id", required=True, help="Task list ID")
+@click.option("--task-id", required=True, help="Task ID")
+@click.option("--step-id", required=True, help="Checklist item ID")
+@click.pass_context
+def tasks_steps_delete(ctx: click.Context, list_id: str, task_id: str, step_id: str) -> None:
+    """Delete a checklist item (step) from a task."""
+    try:
+        from officeclaw.tasks import TasksClient
+
+        with TasksClient() as tc:
+            tc.delete_checklist_item(list_id, task_id, step_id)
+
+        if ctx.obj.get("json"):
+            output_json({"deleted": True, "step_id": step_id})
+        else:
+            console.print("[green]✓[/green] Step deleted.")
     except Exception as e:
         handle_error(e)
 

@@ -10,6 +10,65 @@ from datetime import datetime, timezone
 from typing import Any
 
 from officeclaw.client import GraphClient
+from officeclaw.exceptions import GraphAPIError
+
+_DAY_MAP = {
+    "MON": "monday",
+    "TUE": "tuesday",
+    "WED": "wednesday",
+    "THU": "thursday",
+    "FRI": "friday",
+    "SAT": "saturday",
+    "SUN": "sunday",
+}
+
+
+def _parse_recurrence(repeat_str: str, start_date: str) -> dict[str, Any]:
+    """Parse a repeat shorthand string into a Graph API patternedRecurrence dict."""
+    parts = repeat_str.split(":", 1)
+    kind = parts[0].lower()
+    arg = parts[1] if len(parts) > 1 else None
+
+    day_of_month = int(start_date.split("-")[2])
+    range_ = {"type": "noEnd", "startDate": start_date}
+
+    if kind == "daily":
+        interval = int(arg) if arg else 1
+        return {"pattern": {"type": "daily", "interval": interval}, "range": range_}
+
+    if kind == "weekly":
+        pattern: dict[str, Any] = {"type": "weekly", "interval": 1}
+        if arg:
+            days = [_DAY_MAP[d.strip().upper()] for d in arg.split(",")]
+            pattern["daysOfWeek"] = days
+            pattern["firstDayOfWeek"] = "sunday"
+        return {"pattern": pattern, "range": range_}
+
+    if kind == "weekdays":
+        return {
+            "pattern": {
+                "type": "weekly",
+                "interval": 1,
+                "daysOfWeek": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+                "firstDayOfWeek": "sunday",
+            },
+            "range": range_,
+        }
+
+    if kind == "monthly":
+        dom = int(arg) if arg else day_of_month
+        return {
+            "pattern": {"type": "absoluteMonthly", "interval": 1, "dayOfMonth": dom},
+            "range": range_,
+        }
+
+    if kind == "yearly":
+        return {"pattern": {"type": "absoluteYearly", "interval": 1}, "range": range_}
+
+    raise ValueError(
+        f"Unrecognised repeat pattern: {repeat_str!r}. "
+        "Expected: daily, daily:N, weekly, weekly:MON,WED, monthly, monthly:15, yearly, weekdays"
+    )
 
 
 class TasksClient:
@@ -27,6 +86,22 @@ class TasksClient:
         """Initialize tasks client."""
         self._client = graph_client or GraphClient()
         self._owns_client = graph_client is None
+
+    def get_task_list_members(self, list_id: str) -> list[dict[str, Any]]:
+        """Return members of a shared list, or [] if endpoint is unsupported."""
+        info = self._client.get(f"/me/todo/lists/{list_id}")
+        if not info.get("isShared"):
+            raise GraphAPIError(
+                "ListNotShared",
+                "Task list is not shared; assignment requires a shared list.",
+                400,
+            )
+        try:
+            return self._client.get_all(f"/me/todo/lists/{list_id}/members")
+        except GraphAPIError as e:
+            if e.status_code == 404:
+                return []
+            raise
 
     def list_task_lists(self) -> list[dict[str, Any]]:
         """
@@ -124,6 +199,9 @@ class TasksClient:
         due_date: str | None = None,
         importance: str = "normal",
         reminder: str | None = None,
+        add_to_my_day: bool = False,
+        recurrence: dict | None = None,
+        assignee: str | None = None,
     ) -> dict[str, Any]:
         """
         Create a new task.
@@ -135,6 +213,9 @@ class TasksClient:
             due_date: Due date (YYYY-MM-DD)
             importance: "low", "normal", or "high"
             reminder: Reminder datetime (ISO format)
+            add_to_my_day: Pin to My Day
+            recurrence: patternedRecurrence dict (use _parse_recurrence)
+            assignee: Email to assign to (shared lists only)
 
         Returns:
             Created task object
@@ -163,6 +244,19 @@ class TasksClient:
             }
             task["isReminderOn"] = True
 
+        if add_to_my_day:
+            anchor = due_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            task["startDateTime"] = {
+                "dateTime": f"{anchor}T00:00:00.0000000",
+                "timeZone": "UTC",
+            }
+
+        if recurrence is not None:
+            task["recurrence"] = recurrence
+
+        if assignee is not None:
+            task["assignedTo"] = assignee
+
         return self._client.post(f"/me/todo/lists/{list_id}/tasks", task)
 
     def update_task(
@@ -173,6 +267,12 @@ class TasksClient:
         body: str | None = None,
         due_date: str | None = None,
         importance: str | None = None,
+        reminder: str | None = None,
+        reminder_off: bool = False,
+        add_to_my_day: bool | None = None,
+        recurrence: dict | None = None,
+        recurrence_off: bool = False,
+        assignee: str | None = None,
     ) -> dict[str, Any]:
         """
         Update a task.
@@ -184,6 +284,12 @@ class TasksClient:
             body: New description
             due_date: New due date
             importance: New importance
+            reminder: Set reminder (ISO datetime)
+            reminder_off: Clear reminder
+            add_to_my_day: True=add, False=remove, None=no change
+            recurrence: Set recurrence (patternedRecurrence dict)
+            recurrence_off: Clear recurrence
+            assignee: Assign to email (shared lists only)
 
         Returns:
             Updated task object
@@ -210,6 +316,27 @@ class TasksClient:
 
         if importance is not None:
             data["importance"] = importance
+
+        if reminder_off:
+            data["reminderDateTime"] = None
+            data["isReminderOn"] = False
+        elif reminder is not None:
+            data["reminderDateTime"] = {"dateTime": reminder, "timeZone": "UTC"}
+            data["isReminderOn"] = True
+
+        if add_to_my_day is True:
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            data["startDateTime"] = {"dateTime": f"{today}T00:00:00.0000000", "timeZone": "UTC"}
+        elif add_to_my_day is False:
+            data["startDateTime"] = None
+
+        if recurrence_off:
+            data["recurrence"] = None
+        elif recurrence is not None:
+            data["recurrence"] = recurrence
+
+        if assignee is not None:
+            data["assignedTo"] = assignee
 
         return self._client.patch(
             f"/me/todo/lists/{list_id}/tasks/{task_id}",
@@ -273,6 +400,36 @@ class TasksClient:
     def delete_task(self, list_id: str, task_id: str) -> None:
         """Delete a task."""
         self._client.delete(f"/me/todo/lists/{list_id}/tasks/{task_id}")
+
+    def list_checklist_items(self, list_id: str, task_id: str) -> list[dict[str, Any]]:
+        """List checklist items (steps) for a task."""
+        return self._client.get_all(
+            f"/me/todo/lists/{list_id}/tasks/{task_id}/checklistItems"
+        )
+
+    def add_checklist_item(
+        self, list_id: str, task_id: str, display_name: str
+    ) -> dict[str, Any]:
+        """Add a checklist item (step) to a task."""
+        return self._client.post(
+            f"/me/todo/lists/{list_id}/tasks/{task_id}/checklistItems",
+            {"displayName": display_name},
+        )
+
+    def complete_checklist_item(
+        self, list_id: str, task_id: str, item_id: str
+    ) -> dict[str, Any]:
+        """Mark a checklist item as checked."""
+        return self._client.patch(
+            f"/me/todo/lists/{list_id}/tasks/{task_id}/checklistItems/{item_id}",
+            {"isChecked": True},
+        )
+
+    def delete_checklist_item(self, list_id: str, task_id: str, item_id: str) -> None:
+        """Delete a checklist item."""
+        self._client.delete(
+            f"/me/todo/lists/{list_id}/tasks/{task_id}/checklistItems/{item_id}"
+        )
 
     def close(self) -> None:
         """Close the client."""
